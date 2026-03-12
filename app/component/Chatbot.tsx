@@ -44,7 +44,7 @@ export default function OpulentiaChatbot() {
 
         try {
             // Ensure this is your PRODUCTION URL from the n8n Webhook node
-            const N8N_URL = "https://opulentia.app.n8n.cloud/webhook/0eee51b6-c58b-4891-99d4-90403a875a6d/chat";
+            const N8N_URL = "http://35.184.98.47:3001/webhook/chat";
 
             const response = await fetch(N8N_URL, {
                 method: "POST",
