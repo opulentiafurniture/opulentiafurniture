@@ -2,209 +2,256 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { Search, ShoppingCart, User, ChevronRight, Star, Heart, Menu } from "lucide-react";
+import { Search, ShoppingCart, User, ChevronRight, Star, Heart, Menu, Box, Layout } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Navbar from "./component/navbar";
 import Footer from "./component/footer";
 import Chatbot from "./component/Chatbot";
+import { useRouter } from "next/navigation";
 
-
-const Button = React.forwardRef(({ className, variant = "default", ...props }: any, ref: any) => {
-  const variants: any = {
-    default: "bg-[#0A192F] text-white hover:bg-[#D4AF37] hover:text-[#0A192F]",
-    outline: "border border-[#0A192F] text-[#0A192F] hover:bg-gray-100",
-    gold: "bg-[#D4AF37] text-[#0A192F] font-bold hover:bg-white",
-  };
+// Button and Input components (typed)
+type ButtonVariant = "default" | "outline";
+const Button: React.FC<
+  React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; className?: string }
+> = ({ variant = "default", className = "", children, ...props }) => {
   return (
     <button
-      ref={ref}
-      className={cn("inline-flex items-center justify-center rounded-sm text-[10px] tracking-widest uppercase transition-all px-6 py-3", variants[variant], className)}
       {...props}
-    />
+      className={cn(
+        "inline-flex items-center justify-center rounded-sm px-4 py-2 text-sm transition",
+        variant === "outline"
+          ? "border border-current bg-transparent"
+          : "bg-[#D4AF37] text-[#0A192F]",
+        className
+      )}
+    >
+      {children}
+    </button>
   );
-});
+};
 
-const Input = React.forwardRef(({ className, ...props }: any, ref: any) => (
-  <input
-    ref={ref}
-    className={cn("flex h-9 w-full rounded-sm border border-gray-200 bg-white px-3 py-1 text-xs outline-none focus:ring-1 focus:ring-[#D4AF37]", className)}
-    {...props}
-  />
-));
-
-
-
-const SECTIONS = [
-  { title: "Bedroom", subtitle: "The Heart of the Home", img: "/bedroom.jpg", rev: false, href: "/bedroom" },
-  { title: "Living", subtitle: "Comfort Meets Class", img: "/living.jpg", rev: true, href: "/living" },
-  { title: "Dining", subtitle: "Elevated Gatherings", img: "/dining.jpg", rev: false, href: "/dining" },
-];
-
-
-const PRODUCTS = [
-  { id: 1, name: "Grey Fabric Sofa", price: "Rs 67,149", oldPrice: "Rs 75,000", img: "/sofa.png", rating: 5 },
-  { id: 2, name: "Mint Velvet Tub Chairs", price: "Rs 57,149", oldPrice: "Rs 65,000", img: "/mint-set.png", rating: 4 },
-  { id: 3, name: "Luxury Sofa Bed", price: "Rs 87,149", oldPrice: "Rs 95,000", img: "/sofa-bed.png", rating: 5 },
-  { id: 4, name: "Mahogany Coffee Table", price: "Rs 27,149", oldPrice: "Rs 35,000", img: "/coffee-table.png", rating: 5 },
-  { id: 5, name: "Azure Accent Chair", price: "Rs 37,149", oldPrice: "Rs 45,000", img: "/blue-chair.png", rating: 4 },
-  { id: 6, name: "Classic Armchair", price: "Rs 47,149", oldPrice: "Rs 55,000", img: "/armchair.png", rating: 5 },
-  { id: 7, name: "Velvet Dining Set", price: "Rs 77,149", oldPrice: "Rs 85,000", img: "/dining-set.png", rating: 5 },
-  { id: 8, name: "Elegant Sideboard", price: "Rs 57,149", oldPrice: "Rs 65,000", img: "/sideboard.png", rating: 4 },
-  { id: 9, name: "Ornate Console Table", price: "Rs 47,149", oldPrice: "Rs 55,000", img: "/console-table.png", rating: 5 },
-  { id: 10, name: "Modern Side Chair", price: "Rs 37,149", oldPrice: "Rs 45,000", img: "/side-chair.png", rating: 4 },
-];
-
-const ProductCard = ({ product }: { product: any }) => (
-  <motion.div 
-    whileHover={{ y: -8 }}
-    className="group bg-white flex flex-col h-full"
-  >
-    
-    <div className="relative aspect-square bg-[#F9F9F9] overflow-hidden rounded-sm flex items-center justify-center p-6 border border-transparent group-hover:border-gray transition-all">
-      <img 
-        src={product.img} 
-        alt={product.name} 
-        className="max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105" 
-      />
-  
-      <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-        <button
-          className="bg-white p-2 rounded-full shadow-lg hover:bg-[#D4AF37] hover:text-white transition-colors"
-          title="Add to cart"
-          onClick={(e) => {
-            e.stopPropagation();
-            const key = "opulentia_cart";
-            try {
-              const raw = localStorage.getItem(key) || "[]";
-              const cart: any[] = JSON.parse(raw);
-              const id = product.id;
-              const existing = cart.find((item) => item.id === id);
-              if (existing) {
-                existing.qty = (existing.qty || 1) + 1;
-              } else {
-                cart.push({ id, qty: 1, name: product.name, price: product.price, img: product.img });
-              }
-              localStorage.setItem(key, JSON.stringify(cart));
-              const btn = e.currentTarget as HTMLButtonElement;
-              btn.animate([{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 160 });
-             
-              window.location.href = "/cart";
-            } catch (err) {
-              console.error("Cart error:", err);
-            }
-          }}
-        >
-          <ShoppingCart size={16} />
-        </button>
-        <button
-          className="bg-white p-2 rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-colors"
-          title="Add to wishlist"
-          onClick={(e) => {
-            e.stopPropagation();
-            const key = "opulentia_wishlist";
-            const id = product.id;
-            try {
-              const raw = localStorage.getItem(key) || "[]";
-              const list: number[] = JSON.parse(raw);
-              const exists = list.includes(id);
-              const next = exists ? list.filter((i) => i !== id) : [...list, id];
-              localStorage.setItem(key, JSON.stringify(next));
-              const btn = e.currentTarget as HTMLButtonElement;
-              btn.setAttribute("aria-pressed", String(!exists));
-              btn.title = exists ? "Remove from wishlist" : "Remove from wishlist";
-              if (!exists) {
-                btn.classList.add("bg-red-500", "text-white");
-              } else {
-                btn.classList.remove("bg-red-500", "text-white");
-              }
-
-              btn.animate([{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 180 });
-            } catch (err) {
-              console.error("Wishlist error:", err);
-            }
-          }}
-        >
-          <Heart size={16} />
-        </button>
-      </div>
-    </div>
-
-   
-    <div className="mt-4 space-y-1.5 px-1">
-      <div className="flex gap-0.5">
-        {[...Array(5)].map((_, i) => (
-          <Star 
-            key={i} 
-            size={10} 
-            className={cn(i < product.rating ? "fill-[#D4AF37] text-[#D4AF37]" : "text-gray-300")} 
-          />
-        ))}
-      </div>
-      <p className="text-[8px] text-gray-400 uppercase tracking-widest font-medium">Opulentia Fine Furniture</p>
-      <h3 className="text-[11px] font-bold uppercase tracking-tight text-[#0A192F] line-clamp-1">{product.name}</h3>
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] font-black text-[#D4AF37]">{product.price}</span>
-        <span className="text-[9px] text-gray-400 line-through">{product.oldPrice}</span>
-      </div>
-    </div>
-  </motion.div>
+const Input: React.FC<React.InputHTMLAttributes<HTMLInputElement>> = (props) => (
+  <input {...props} className={cn("border rounded px-3 py-2 text-sm", props.className)} />
 );
 
+// Typed models for products and sections
+interface Product {
+  id: number;
+  name: string;
+  price: string;
+  oldPrice?: string;
+  img: string;
+  rating?: number;
+  category?: string;
+  reviews?: number;
+  liked?: boolean;
+}
+
+interface Section {
+  title: string;
+  subtitle: string;
+  img: string;
+  href: string;
+  rev?: boolean;
+}
+
+// Sample data for PRODUCTS and SECTIONS (typed)
+const PRODUCTS: Product[] = [
+  { id: 1, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas" },
+  { id: 2, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Chairs" },
+  { id: 3, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables" },
+  { id: 21, name: "Grand Dining Table", price: "Rs 119,990", oldPrice: "Rs 134,990", img: "/dining-table.jpg", rating: 5, category: "Tables" },
+  { id: 22, name: "Oak Dining Chair", price: "Rs 68,500", oldPrice: "Rs 77,000", img: "/dining-chair.jpeg", rating: 4, category: "Chairs" },
+  { id: 23, name: "Luxury Pantry Cupboard", price: "Rs 84,900", oldPrice: "Rs 95,000", img: "/dining-cupboard.jpeg", rating: 5, category: "Storage" },
+  { id: 31, name: "Royal King Bed", price: "Rs 129,990", oldPrice: "Rs 145,000", img: "/bedroom-bed.jpeg", rating: 5, category: "Beds" },
+  { id: 34, name: "Luxury Wardrobe Unit", price: "Rs 159,900", oldPrice: "Rs 175,000", img: "/bedroom-wardrobe.jpeg", rating: 5, category: "Wardrobes" },
+  { id: 35, name: "Elegant Dressing Table", price: "Rs 74,990", oldPrice: "Rs 84,000", img: "/bedroom-dresser.jpeg", rating: 4, category: "Dressers" },
+]
 
 
-export default function OpulentiaHome() {
-  return (
-    <div className="min-h-screen bg-white font-sans text-[#0A192F]">
-      
-     <Navbar />
+const SECTIONS: Section[] = [
+  { title: "Living Room", subtitle: "Curated Comfort", img: "/living.jpg", href: "/collections/living" },
+  { title: "Bedroom", subtitle: "Rest in Style", img: "/bedroom.jpg", href: "/collections/bedroom", rev: true },
+  { title: "Dining", subtitle: "Gather in Luxury", img: "/dining.jpg", href: "/collections/dining" },
+];
 
-      <div className="w-full bg-white space-y-12 pb-20">
-      
-   
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
-        <div className="h-[400px] overflow-hidden group relative">
-          <img src="/living.jpg" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Living" />
-          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
-        </div>
-        <div className="h-[400px] overflow-hidden group relative">
-          <img src="/bedroom.jpg" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Bedroom" />
-          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
-        </div>
-        <div className="h-[400px] overflow-hidden group relative">
-          <img src="/dining.jpg" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Dining" />
-          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
+// ProductCard implementation (typed)
+const ProductCard = ({ product }: { product: Product }) => (
+  <motion.div whileHover={{ y: -8 }} className="group bg-white flex flex-col h-full">
+      <div className="relative aspect-square bg-[#F9F9F9] overflow-hidden rounded-sm flex items-center justify-center p-6 border border-transparent group-hover:border-gray-300 transition-all">
+        <img
+          src={product.img}
+          alt={product.name}
+          className="max-h-full max-w-full object-contain transition-transform duration-700 group-hover:scale-105"
+        />
+  
+        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+          <button
+            className="bg-white p-2 rounded-full shadow-lg hover:bg-[#D4AF37] hover:text-white transition-colors"
+            title="Add to cart"
+            onClick={(e) => {
+              e.stopPropagation();
+              const key = "opulentia_cart";
+              try {
+                const raw = localStorage.getItem(key) || "[]";
+                const cart: any[] = JSON.parse(raw);
+                const existing = cart.find((item) => item.id === product.id);
+  
+                if (existing) {
+                  existing.qty = (existing.qty || 1) + 1;
+                } else {
+                  cart.push({
+                    id: product.id,
+                    qty: 1,
+                    name: product.name,
+                    price: product.price,
+                    img: product.img,
+                  });
+                }
+  
+                localStorage.setItem(key, JSON.stringify(cart));
+                window.location.href = "/cart";
+              } catch (err) {
+                console.error("Cart error:", err);
+              }
+            }}
+          >
+            <ShoppingCart size={16} />
+          </button>
+  
+          <button
+            className="bg-white p-2 rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-colors"
+            title="Add to wishlist"
+            onClick={(e) => {
+              e.stopPropagation();
+              const key = "opulentia_wishlist";
+              try {
+                const raw = localStorage.getItem(key) || "[]";
+                const list: number[] = JSON.parse(raw);
+                const exists = list.includes(product.id);
+                const next = exists ? list.filter((i) => i !== product.id) : [...list, product.id];
+                localStorage.setItem(key, JSON.stringify(next));
+              } catch (err) {
+                console.error("Wishlist error:", err);
+              }
+            }}
+          >
+            <Heart size={16} />
+          </button>
         </div>
       </div>
-
-     
-      <section className="max-w-7xl mx-auto px-6">
-        <div className="mb-10 flex items-center gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tighter">Best Seller</h2>
-          <div className="h-px flex-1 bg-gray-100" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-          {PRODUCTS.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
   
-      <section className="max-w-7xl mx-auto px-6">
-        <div className="mb-10 flex items-center gap-4">
-          <h2 className="text-2xl font-bold uppercase tracking-tighter">Promotion</h2>
-          <div className="h-px flex-1 bg-gray-100" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-          {PRODUCTS.slice().reverse().map(product => (
-            <ProductCard key={product.id} product={product} />
+      <div className="mt-4 space-y-1.5 px-1">
+        <div className="flex gap-0.5">
+          {[...Array(5)].map((_, i) => (
+            <Star
+              key={i}
+              size={10}
+              className={cn(i < (product.rating ?? 0) ? "fill-[#D4AF37] text-[#D4AF37]" : "text-gray-300")}
+            />
           ))}
         </div>
-      </section>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-black text-[#D4AF37]">{product.price}</span>
+          <span className="text-[9px] text-gray-400 line-through">{product.oldPrice}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
 
-    </div>
+export default function OpulentiaHome() {
+  const router = useRouter();
 
-   
+  return (
+    <div className="min-h-screen bg-white font-sans text-[#0A192F]">
+      <Navbar />
+
+      <div className="w-full bg-white space-y-12 pb-20">
+        {/* HERO GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
+          <div className="h-[400px] overflow-hidden group relative">
+            <img src="/living.jpg" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Living" />
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
+          </div>
+          <div className="h-[400px] overflow-hidden group relative">
+            <img src="/bedroom.jpg" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Bedroom" />
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
+          </div>
+          <div className="h-[400px] overflow-hidden group relative">
+            <img src="/dining.jpg" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Dining" />
+            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-all" />
+          </div>
+        </div>
+
+        {/* BEST SELLER */}
+        <section className="max-w-7xl mx-auto px-6">
+          <div className="mb-10 flex items-center gap-4">
+            <h2 className="text-2xl font-bold uppercase tracking-tighter">Best Seller</h2>
+            <div className="h-px flex-1 bg-gray-100" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+            {PRODUCTS.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+
+        {/* --- NEW: 3D VISUALIZATION CALL-TO-ACTION CARD --- */}
+        <section className="max-w-7xl mx-auto px-6 py-10">
+          <div className="relative overflow-hidden rounded-sm bg-[#0A192F] text-white shadow-2xl">
+            <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block">
+              {/* This represents your 3D Engine Preview */}
+              <img 
+                src="/living.jpg" 
+                alt="3D Visualization" 
+                className="w-full h-full object-cover opacity-40 grayscale"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0A192F] via-transparent to-transparent" />
+            </div>
+
+            <div className="relative z-10 p-12 lg:w-3/5 space-y-6">
+              <div className="inline-flex items-center gap-2 bg-[#D4AF37] px-3 py-1 rounded-full shadow-lg">
+                <Box size={14} className="text-[#0A192F]" />
+                <span className="text-[10px] font-black text-[#0A192F] uppercase tracking-widest">Interactive 3D Engine</span>
+              </div>
+              
+              <h2 className="text-4xl font-light tracking-[0.1em] uppercase leading-tight">
+                Design Your <span className="text-[#D4AF37] italic font-medium">Dream Room</span> In Real-Time
+              </h2>
+              
+              <p className="text-gray-400 text-sm font-light leading-relaxed max-w-md">
+                Experience luxury like never before. Use our proprietary 3D Visualization tool to place real furniture, customize dimensions, and see your space come to life before you buy.
+              </p>
+
+              <div className="flex flex-wrap gap-6 pt-4">
+              </div>
+
+              <button 
+                onClick={() => router.push("/visualization")}
+                className="group flex items-center gap-4 bg-[#D4AF37] text-[#0A192F] px-8 py-4 text-xs font-black tracking-widest uppercase transition-all hover:bg-white active:scale-95 shadow-xl"
+              >
+                Launch Visualization 
+                <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* PROMOTION */}
+        <section className="max-w-7xl mx-auto px-6">
+          <div className="mb-10 flex items-center gap-4">
+            <h2 className="text-2xl font-bold uppercase tracking-tighter">Promotion</h2>
+            <div className="h-px flex-1 bg-gray-100" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+            {PRODUCTS.slice().reverse().map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* SECTIONS LIST */}
       <section className="space-y-1">
         {SECTIONS.map((section) => (
           <div 
@@ -229,8 +276,8 @@ export default function OpulentiaHome() {
           </div>
         ))}
       </section>
-       <Chatbot />
 
+      <Chatbot />
       <Footer />
     </div>
   );

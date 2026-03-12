@@ -1,9 +1,9 @@
 "use client";
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Stage, useGLTF, ContactShadows, TransformControls } from '@react-three/drei';
-import { Object3D } from 'three';
+import { OrbitControls, Grid, Environment, useGLTF, ContactShadows, TransformControls } from '@react-three/drei';
+import { Object3D, Box3, Vector3 } from 'three';
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
@@ -14,45 +14,75 @@ interface FurnitureProps {
   mode: 'translate' | 'rotate' | 'scale';
   isSelected: boolean;
   onSelect: () => void;
+  onUpdatePosition: (newPos: [number, number, number]) => void;
+  setOrbitEnabled: (enabled: boolean) => void;
+  floorY: number; 
 }
 
 /** * COMPONENTS */
-function Furniture({ url, position, mode, isSelected, onSelect }: FurnitureProps) {
+function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY }: FurnitureProps) {
   const { scene } = useGLTF(url); 
-  
-  // FIX: Use React State instead of useRef. This forces TransformControls to wait 
-  // until the 3D object is fully mounted before trying to attach the movement arrows.
   const [mesh, setMesh] = useState<Object3D | null>(null);
+  const controlsRef = useRef<any>(null);
 
-  // Clone the scene so we can spawn multiple of the SAME item independently
-  const clonedScene = React.useMemo(() => scene.clone(), [scene]);
+  const clonedScene = React.useMemo(() => {
+    const clone = scene.clone();
+    const box = new Box3().setFromObject(clone);
+    clone.children.forEach((child) => {
+      child.position.y -= box.min.y;
+    });
+    return clone;
+  }, [scene]);
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const handleDraggingChanged = (e: any) => setOrbitEnabled(!e.value);
+    controls.addEventListener('dragging-changed', handleDraggingChanged);
+    return () => controls.removeEventListener('dragging-changed', handleDraggingChanged);
+  }, [setOrbitEnabled, controlsRef]);
 
   return (
-    <group onClick={(e) => { e.stopPropagation(); onSelect(); }}>
-      {/* Only render TransformControls if BOTH isSelected is true AND the mesh exists */}
+    <group>
       {isSelected && mesh ? (
-        <TransformControls object={mesh} mode={mode} />
+        <TransformControls 
+          ref={controlsRef}
+          object={mesh} 
+          mode={mode} 
+          showY={mode !== 'translate'} 
+          translationSnap={0.1}
+          rotationSnap={Math.PI / 8}
+          onMouseUp={() => {
+            if (mesh) {
+              // Always lock to the CURRENT floorY
+              onUpdatePosition([mesh.position.x, floorY, mesh.position.z]);
+            }
+          }}
+        />
       ) : null}
       
-      {/* Pass setMesh directly to the ref */}
-      <primitive ref={setMesh} object={clonedScene} position={position} castShadow />
+      <primitive 
+        ref={setMesh} 
+        object={clonedScene} 
+        position={[position[0], floorY, position[2]]} 
+        onClick={(e: any) => { e.stopPropagation(); onSelect(); }} 
+        castShadow 
+      />
     </group>
   );
 }
 
 const VisualizationPage = () => {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState('build'); 
+  const [activeTab, setActiveTab] = useState('furnish'); 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // --- Transform Tool & Scene State ---
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [orbitEnabled, setOrbitEnabled] = useState(true);
   const [sceneItems, setSceneItems] = useState<any[]>([]); 
-
-  // --- Catalog State ---
   const [activeCategory, setActiveCategory] = useState('living');
 
-  // --- Room Configuration State ---
   const [roomShape, setRoomShape] = useState('rectangle');
   const [roomWidth, setRoomWidth] = useState(10);
   const [roomLength, setRoomLength] = useState(10);
@@ -60,10 +90,7 @@ const VisualizationPage = () => {
   const [wallColor, setWallColor] = useState('#f8fafc'); 
   const [floorColor, setFloorColor] = useState('#d4b895'); 
 
-  const halfWall = wallHeight / 2;
-  const floorY = -halfWall + 0.01; 
-
-  // --- Data Dictionaries ---
+  
   const roomLayouts = [
     { id: 'square', name: 'Square', icon: 'M4 4h16v16H4z', w: 10, l: 10 },
     { id: 'rectangle', name: 'Rectangle', icon: 'M2 6h20v12H2z', w: 14, l: 8 },
@@ -81,302 +108,192 @@ const VisualizationPage = () => {
   ];
 
   const catalogCategories = [
-    { id: 'living', label: 'Living Room' },
-    { id: 'dining', label: 'Dining Room' },
-    { id: 'bedroom', label: 'Bedroom' },
-    { id: 'decoration', label: 'Decoration' }
+    { id: 'living', label: 'Living Room' }, { id: 'dining', label: 'Dining Room' },
+    { id: 'bedroom', label: 'Bedroom' }, { id: 'decoration', label: 'Decoration' }
   ];
 
   const furnitureCatalog: Record<string, any[]> = {
     living: [
-      { id: 'lv1', name: 'Classic Oak Chair', price: 'LKR 45,000', url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb' },
+      { id: 'lv1', name: 'Classic Oak Chair', price: 'LKR 45,000', url: '/models/Chair.glb' },
       { id: 'lv2', name: 'Velvet Sofa', price: 'LKR 245,000', url: '/models/Chair.glb' },
-      { id: 'lv3', name: 'Glass Coffee Table', price: 'LKR 85,000', url: '/models/Chair.glb' }
     ],
-    dining: [
-      { id: 'dn1', name: 'Mahogany Dining Table', price: 'LKR 150,000', url: '/models/Chair.glb' },
-      { id: 'dn2', name: 'Upholstered Dining Chair', price: 'LKR 35,000', url: '/models/Chair.glb' }
-    ],
-    bedroom: [
-      { id: 'bd1', name: 'King Size Bed', price: 'LKR 320,000', url: '/models/Chair.glb' },
-      { id: 'bd2', name: 'Nightstand', price: 'LKR 25,000', url: '/models/Chair.glb' },
-      { id: 'bd3', name: 'Wardrobe', price: 'LKR 180,000', url: '/models/Chair.glb' }
-    ],
-    decoration: [
-      { id: 'dc1', name: 'Floor Lamp', price: 'LKR 15,000', url: '/models/Chair.glb' },
-      { id: 'dc2', name: 'Potted Plant', price: 'LKR 8,000', url: '/models/Chair.glb' },
-      { id: 'dc3', name: 'Persian Rug', price: 'LKR 120,000', url: '/models/Chair.glb' }
-    ]
+    dining: [], bedroom: [], decoration: []
   };
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-  const handleLayoutSelect = (layout: any) => {
-    setRoomShape(layout.id);
-    setRoomWidth(layout.w);
-    setRoomLength(layout.l);
+  const handleScreenshot = () => {
+    if (canvasRef.current) {
+      const link = document.createElement('a');
+      link.setAttribute('download', `Opulentia-${Date.now()}.png`);
+      link.setAttribute('href', canvasRef.current.toDataURL('image/png'));
+      link.click();
+    }
   };
 
   const handleAddItemToScene = (item: any) => {
-    const newItem = {
-      ...item,
-      uniqueId: `${item.id}-${Date.now()}`, 
-      position: [0, floorY + 0.1, 0] 
-    };
+    const newItem = { ...item, uniqueId: `${item.id}-${Date.now()}`, position: [0, 0, 0] };
     setSceneItems([...sceneItems, newItem]);
     setSelectedItem(newItem.uniqueId); 
   };
 
-  const handleCanvasClick = () => {
-    setSelectedItem(null);
-  };
-
-  const handleClearRoom = () => {
-    if (confirm("Are you sure you want to remove all furniture from the room?")) {
-      setSceneItems([]);
-      setSelectedItem(null);
-    }
-  };
-
-  if (!mounted) return <div className="h-screen w-screen flex items-center justify-center bg-gray-50 text-gray-500">Loading Opulentia Engine...</div>;
+  if (!mounted) return null;
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-gray-100 text-gray-800 font-sans overflow-x-hidden">
-      
-      {/* 1. HEADER AREA */}
+    <div className="flex flex-col min-h-screen w-full bg-[#f8fafc] text-gray-800 font-sans overflow-x-hidden">
       <Navbar />
-      <div className="w-full h-14 bg-white border-b shadow-sm flex items-center justify-between px-6 z-20 shrink-0">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">OPULENTIA</h1>
-          <span className="text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-1 rounded">PRO</span>
+      
+      {/* HEADER */}
+      <div className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0">
+        <div className="flex gap-3">
+            <button onClick={handleScreenshot} className="bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 text-[10px] font-black px-5 py-2 rounded-lg transition-all shadow-sm active:scale-95">SNAPSHOT</button>
+            <button className="bg-black hover:bg-gray-800 text-white text-[10px] font-black px-6 py-2 rounded-lg shadow-md transition-all active:scale-95">SAVE Layout</button>
         </div>
-        <button className="bg-black hover:bg-gray-800 text-white text-sm font-medium px-5 py-2 rounded-md shadow-md transition-all">
-          Save Project
-        </button>
       </div>
 
-      {/* 2. MAIN WORKSPACE */}
-      <div className="relative w-full h-[1000px] border-b border-gray-200 overflow-hidden">
+      <div className="relative w-full h-[1000px] overflow-hidden flex">
         
-        {/* LEFT SIDEBAR */}
-        <div className="absolute top-0 left-0 w-72 h-full bg-white border-r shadow-lg z-10 flex flex-col">
-          <div className="flex border-b text-sm font-medium">
-            <button onClick={() => setActiveTab('build')} className={`flex-1 py-3 text-center ${activeTab === 'build' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:bg-gray-50'}`}>Build</button>
-            <button onClick={() => setActiveTab('furnish')} className={`flex-1 py-3 text-center ${activeTab === 'furnish' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:bg-gray-50'}`}>Furnish</button>
+        {/* SIDEBAR */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-white/95 backdrop-blur-md border-r border-gray-200 z-10 flex flex-col shadow-2xl">
+          <div className="flex p-3 border-b border-gray-100 gap-2">
+            <button onClick={() => setActiveTab('build')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'build' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Build</button>
+            <button onClick={() => setActiveTab('furnish')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'furnish' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Furniture</button>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
-            
-            {/* BUILD TAB */}
+
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
             {activeTab === 'build' && (
-               <div className="space-y-6 animate-fadeIn pb-10">
-                 <div>
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Room Layout</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {roomLayouts.map((layout) => (
-                      <button key={layout.id} onClick={() => handleLayoutSelect(layout)} className={`flex flex-col items-center justify-center p-2 border rounded-md transition ${roomShape === layout.id ? 'border-black bg-gray-50 shadow-sm' : 'hover:border-gray-400'}`}>
-                        <svg viewBox="0 0 24 24" className={`w-6 h-6 mb-1 ${roomShape === layout.id ? 'fill-black' : 'fill-gray-400'}`}><path d={layout.icon} /></svg>
-                        <span className="text-[10px] font-medium">{layout.name}</span>
-                      </button>
-                    ))}
+               <div className="space-y-8 animate-fadeIn">
+                  <div>
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Structure</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                        {roomLayouts.map((l) => (
+                        <button key={l.id} onClick={() => {setRoomShape(l.id); setRoomWidth(l.w); setRoomLength(l.l);}} className={`p-3 border rounded-xl transition-all ${roomShape === l.id ? 'border-black bg-gray-50 ring-1 ring-black shadow-inner' : 'border-gray-100 hover:border-gray-300'}`}>
+                            <svg viewBox="0 0 24 24" className="w-6 h-6 mx-auto"><path d={l.icon} fill={roomShape === l.id ? 'black' : '#d1d5db'} /></svg>
+                        </button>
+                        ))}
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Dimensions (Meters)</h3>
+                  <div className="space-y-5">
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dimensions (Meters)</h3>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Width</span><input type="number" value={roomWidth} onChange={(e) => setRoomWidth(Math.max(1, Number(e.target.value)))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
+                        <input type="range" min="1" max="1000" value={roomWidth} onChange={(e) => setRoomWidth(Number(e.target.value))} className="w-full accent-black h-1" />
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Length</span><input type="number" value={roomLength} onChange={(e) => setRoomLength(Math.max(1, Number(e.target.value)))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
+                        <input type="range" min="1" max="1000" value={roomLength} onChange={(e) => setRoomLength(Number(e.target.value))} className="w-full accent-black h-1" />
+                    </div>
+                    {/* FIXED: Dynamic Wall Height Input */}
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
+                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Wall Height</span><input type="number" value={wallHeight} onChange={(e) => setWallHeight(Math.max(1, Number(e.target.value)))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
+                        <input type="range" min="1" max="100" value={wallHeight} onChange={(e) => setWallHeight(Number(e.target.value))} className="w-full accent-black h-1" />
+                    </div>
+                  </div>
+
                   <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center text-sm mb-2">
-                        <span className="text-gray-600">Width</span>
-                        <div className="flex items-center gap-1">
-                          <input type="number" min="2" max="30" step="0.5" value={roomWidth} onChange={(e) => setRoomWidth(Math.min(Math.max(Number(e.target.value), 2), 30))} className="w-16 p-1 text-right border rounded bg-gray-50 font-medium focus:ring-black focus:border-black" />
-                          <span className="text-gray-400 text-xs">m</span>
-                        </div>
-                      </div>
-                      <input type="range" min="2" max="30" step="0.5" value={roomWidth} onChange={(e) => setRoomWidth(Number(e.target.value))} className="w-full accent-black" />
+                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Wall Colour</h3>
+                    <div className="bg-white p-4 border border-gray-100 rounded-xl shadow-sm flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-gray-400">{wallColor.toUpperCase()}</span>
+                        <input type="color" value={wallColor} onChange={(e) => setWallColor(e.target.value)} className="w-8 h-8 p-0 border-0 rounded cursor-pointer" />
                     </div>
-                    <div>
-                      <div className="flex justify-between items-center text-sm mb-2">
-                        <span className="text-gray-600">Length</span>
-                        <div className="flex items-center gap-1">
-                          <input type="number" min="2" max="30" step="0.5" value={roomLength} onChange={(e) => setRoomLength(Math.min(Math.max(Number(e.target.value), 2), 30))} className="w-16 p-1 text-right border rounded bg-gray-50 font-medium focus:ring-black focus:border-black" />
-                          <span className="text-gray-400 text-xs">m</span>
-                        </div>
-                      </div>
-                      <input type="range" min="2" max="30" step="0.5" value={roomLength} onChange={(e) => setRoomLength(Number(e.target.value))} className="w-full accent-black" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center text-sm mb-2">
-                        <span className="text-gray-600">Wall Height</span>
-                        <div className="flex items-center gap-1">
-                          <input type="number" min="2" max="10" step="0.5" value={wallHeight} onChange={(e) => setWallHeight(Math.min(Math.max(Number(e.target.value), 2), 10))} className="w-16 p-1 text-right border rounded bg-gray-50 font-medium focus:ring-black focus:border-black" />
-                          <span className="text-gray-400 text-xs">m</span>
-                        </div>
-                      </div>
-                      <input type="range" min="2" max="10" step="0.5" value={wallHeight} onChange={(e) => setWallHeight(Number(e.target.value))} className="w-full accent-black" />
+                    <div className="grid grid-cols-4 gap-2">
+                        {floorMaterials.map(m => (
+                        <button key={m.name} onClick={() => setFloorColor(m.hex)} className={`aspect-square rounded-lg border-2 transition-all ${floorColor === m.hex ? 'border-black scale-110 shadow-lg' : 'border-transparent'}`} style={{background: m.hex}} />
+                        ))}
                     </div>
                   </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Wall Paint</h3>
-                  <div className="flex items-center gap-3 bg-gray-50 p-2 border rounded-md">
-                    <input type="color" value={wallColor} onChange={(e) => setWallColor(e.target.value)} className="w-10 h-10 p-0 border-0 rounded cursor-pointer" />
-                    <div className="flex flex-col"><span className="text-sm font-medium">Custom Color</span><span className="text-xs text-gray-500 uppercase">{wallColor}</span></div>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Floor Material</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {floorMaterials.map((mat) => (
-                      <button key={mat.name} onClick={() => setFloorColor(mat.hex)} className={`flex flex-col items-center p-2 border rounded-md transition ${floorColor === mat.hex ? 'border-black bg-gray-50 shadow-sm' : 'hover:border-gray-300'}`}>
-                        <div className="w-full h-6 rounded mb-1 border shadow-inner" style={{ backgroundColor: mat.hex }}></div>
-                        <span className="text-[10px] text-center font-medium">{mat.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
                </div>
             )}
-
-            {/* FURNISH TAB */}
             {activeTab === 'furnish' && (
-              <div className="animate-fadeIn flex flex-col h-full">
-                
-                <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
+              <div className="space-y-4">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {catalogCategories.map(cat => (
-                    <button 
-                      key={cat.id}
-                      onClick={() => setActiveCategory(cat.id)}
-                      className={`whitespace-nowrap px-3 py-1.5 text-xs font-medium rounded-full border transition ${activeCategory === cat.id ? 'bg-black text-white border-black' : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'}`}
-                    >
-                      {cat.label}
-                    </button>
+                    <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all ${activeCategory === cat.id ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-400'}`}>{cat.label}</button>
                   ))}
                 </div>
-
-                <div className="space-y-3 pb-10">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                    {catalogCategories.find(c => c.id === activeCategory)?.label} Catalog
-                  </h3>
-                  
-                  {furnitureCatalog[activeCategory].map((item) => (
-                    <div 
-                      key={item.id} 
-                      onClick={() => handleAddItemToScene(item)}
-                      className="group border rounded-lg p-2 hover:border-black cursor-pointer bg-white transition flex flex-col items-center shadow-sm hover:shadow"
-                    >
-                      <div className="w-full h-24 bg-gray-50 rounded mb-2 flex flex-col items-center justify-center text-gray-400 group-hover:bg-gray-100">
-                        <span className="text-2xl mb-1">+</span>
-                        <span className="text-[10px] uppercase font-bold tracking-wider">Add to Room</span>
-                      </div>
-                      <p className="text-sm font-medium w-full text-left text-gray-800">{item.name}</p>
-                      <p className="text-xs text-gray-500 w-full text-left">{item.price}</p>
-                    </div>
-                  ))}
-                </div>
-
+                {furnitureCatalog[activeCategory]?.map((item) => (
+                  <div key={item.id} onClick={() => handleAddItemToScene(item)} className="group bg-white border border-gray-100 rounded-2xl p-4 hover:border-black cursor-pointer shadow-sm flex justify-between items-center active:scale-95">
+                    <span className="text-sm font-bold text-gray-700">{item.name}</span>
+                    <span className="text-[10px] font-black text-gray-200 group-hover:text-black transition-colors">+ ADD</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
 
-        {/* RIGHT SIDEBAR */}
-        <div className="absolute top-0 right-0 w-64 h-full bg-white border-l shadow-lg z-10 p-5 flex flex-col">
-          <h2 className="text-lg font-bold mb-4 border-b pb-2">Properties</h2>
+        {/* RIGHT PANEL */}
+        <div className="absolute top-0 right-0 w-72 h-full bg-white/95 border-l border-gray-200 z-10 p-6 flex flex-col shadow-2xl">
+          <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-6">Properties</h2>
           {selectedItem ? (
-             <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg mb-4">
-                <p className="text-sm text-blue-800 font-medium mb-1">Item Selected</p>
-                <p className="text-xs text-blue-600 mb-3">Use the canvas tools to move or rotate this object.</p>
-                <button 
-                  onClick={() => {
-                    setSceneItems(sceneItems.filter(i => i.uniqueId !== selectedItem));
-                    setSelectedItem(null);
-                  }}
-                  className="w-full py-1.5 bg-red-100 text-red-700 hover:bg-red-200 text-xs font-bold rounded transition"
-                >
-                  Delete Item
-                </button>
+             <div className="space-y-4">
+                <button onClick={() => {setSceneItems(sceneItems.filter(i => i.uniqueId !== selectedItem)); setSelectedItem(null);}} className="w-full py-3 bg-red-50 text-red-500 text-[10px] font-black rounded-xl border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm">DELETE ITEM</button>
              </div>
-          ) : (
-             <p className="text-sm text-gray-400 text-center mt-4 mb-4">Click an item in the 3D view to select it.</p>
-          )}
-
-          <div className="mt-auto border-t pt-4">
-            <button 
-              onClick={handleClearRoom}
-              className="w-full py-2 bg-gray-100 hover:bg-red-50 hover:text-red-600 hover:border-red-200 border border-gray-200 text-gray-600 text-sm font-bold rounded transition"
-            >
-              Clear Entire Room
-            </button>
-          </div>
+          ) : <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl text-gray-300 text-[10px] font-bold">CLICK ITEM</div>}
+          
+          <button onClick={() => setSceneItems([])} className="mt-auto py-3 bg-white text-gray-400 text-[10px] font-bold rounded-xl border border-gray-200 hover:border-red-200 transition-all uppercase tracking-tighter">Clear Workspace</button>
         </div>
 
-        {/* FLOATING CANVAS TOOLBAR */}
+        {/* FLOATING TOOLS */}
         {selectedItem && (
-          <div className="absolute top-4 right-[270px] z-10 bg-white rounded-lg shadow-md border flex overflow-hidden">
-            <button onClick={() => setTransformMode('translate')} className={`px-4 py-2 text-sm font-medium transition ${transformMode === 'translate' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}>Move</button>
-            <button onClick={() => setTransformMode('rotate')} className={`px-4 py-2 text-sm font-medium border-l transition ${transformMode === 'rotate' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-100'}`}>Rotate</button>
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-black p-1.5 rounded-full shadow-2xl flex items-center gap-1">
+            <button onClick={() => setTransformMode('translate')} className={`px-6 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'translate' ? 'bg-white text-black' : 'text-gray-400'}`}>MOVE</button>
+            <button onClick={() => setTransformMode('rotate')} className={`px-6 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'rotate' ? 'bg-white text-black' : 'text-gray-400'}`}>ROTATE</button>
           </div>
         )}
 
-        {/* 3D VIEWPORT (CANVAS) */}
-        <div className="absolute inset-0 z-0 pl-72 pr-64">
-          <Canvas shadows={true} camera={{ position: [5, 12, 15], fov: 45 }} onPointerMissed={handleCanvasClick}>
+        {/* 3D CANVAS */}
+        <div className="absolute inset-0 z-0 pl-80 pr-72 bg-[#f1f5f9]">
+          <Canvas 
+            ref={canvasRef}
+            gl={{ preserveDrawingBuffer: true, antialias: true }} 
+            shadows 
+            camera={{ position: [20, 20, 20], fov: 45, far: 100000 }} 
+            onPointerMissed={() => setSelectedItem(null)}
+          >
             <Suspense fallback={null}>
-              <Stage environment="city" intensity={0.6}>
-                <Grid infiniteGrid fadeDistance={40} cellColor="#e5e7eb" sectionColor="#9ca3af" sectionSize={5} cellThickness={1} />
-                
-                <group position={[0, halfWall, 0]}>
-                  {['square', 'rectangle', 'narrow', 'studio'].includes(roomShape) && (
-                    <group>
-                      <mesh receiveShadow><boxGeometry args={[roomWidth, wallHeight, roomLength]} /><meshStandardMaterial color={wallColor} side={1} transparent opacity={0.25} /></mesh>
-                      <mesh receiveShadow position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[roomWidth, roomLength]} /><meshStandardMaterial color={floorColor} /></mesh>
-                    </group>
-                  )}
-                  {roomShape === 'l-shape' && (
-                    <group>
-                      <mesh receiveShadow position={[0, 0, -roomLength/4]}><boxGeometry args={[roomWidth, wallHeight, roomLength/2]} /><meshStandardMaterial color={wallColor} side={1} transparent opacity={0.25} /></mesh>
-                      <mesh receiveShadow position={[0, floorY, -roomLength/4]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[roomWidth, roomLength/2]} /><meshStandardMaterial color={floorColor} /></mesh>
-                      <mesh receiveShadow position={[-roomWidth/4, 0, roomLength/4]}><boxGeometry args={[roomWidth/2, wallHeight, roomLength/2]} /><meshStandardMaterial color={wallColor} side={1} transparent opacity={0.25} /></mesh>
-                      <mesh receiveShadow position={[-roomWidth/4, floorY, roomLength/4]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[roomWidth/2, roomLength/2]} /><meshStandardMaterial color={floorColor} /></mesh>
-                    </group>
-                  )}
-                  {roomShape === 't-shape' && (
-                    <group>
-                      <mesh receiveShadow position={[0, 0, -roomLength/4]}><boxGeometry args={[roomWidth, wallHeight, roomLength/2]} /><meshStandardMaterial color={wallColor} side={1} transparent opacity={0.25} /></mesh>
-                      <mesh receiveShadow position={[0, floorY, -roomLength/4]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[roomWidth, roomLength/2]} /><meshStandardMaterial color={floorColor} /></mesh>
-                      <mesh receiveShadow position={[0, 0, roomLength/4]}><boxGeometry args={[roomWidth/3, wallHeight, roomLength/2]} /><meshStandardMaterial color={wallColor} side={1} transparent opacity={0.25} /></mesh>
-                      <mesh receiveShadow position={[0, floorY, roomLength/4]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[roomWidth/3, roomLength/2]} /><meshStandardMaterial color={floorColor} /></mesh>
-                    </group>
-                  )}
-                </group>
+              <ambientLight intensity={0.8} />
+              <directionalLight position={[20, 30, 20]} intensity={1.8} castShadow shadow-mapSize={[2048, 2048]} />
+              <Environment preset="city" />
 
-                {sceneItems.map((item) => (
-                  <Furniture 
-                    key={item.uniqueId}
-                    url={item.url} 
-                    position={item.position} 
-                    mode={transformMode}
-                    isSelected={selectedItem === item.uniqueId}
-                    onSelect={() => setSelectedItem(item.uniqueId)}
-                  />
-                ))}
+              <Grid infiniteGrid fadeDistance={400} sectionSize={1} sectionColor="#e2e8f0" cellColor="#ffffff" cellThickness={0.5} />
+              
+              <group position={[0, wallHeight / 2, 0]}>
+                <mesh receiveShadow>
+                    <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
+                    <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.1} depthWrite={false} />
+                </mesh>
+                <mesh receiveShadow position={[0, -wallHeight / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[roomWidth, roomLength]} />
+                    <meshStandardMaterial color={floorColor} roughness={0.8} />
+                </mesh>
+              </group>
 
-              </Stage>
+              {sceneItems.map((item) => (
+                <Furniture 
+                  key={item.uniqueId}
+                  url={item.url} 
+                  position={item.position} 
+                  mode={transformMode}
+                  isSelected={selectedItem === item.uniqueId}
+                  onSelect={() => setSelectedItem(item.uniqueId)}
+                  setOrbitEnabled={setOrbitEnabled}
+                  floorY={0}
+                  onUpdatePosition={(newPos) => {
+                    setSceneItems(prev => prev.map(i => i.uniqueId === item.uniqueId ? { ...i, position: newPos } : i));
+                  }}
+                />
+              ))}
+
             </Suspense>
 
-            <ContactShadows position={[0, -0.01, 0]} opacity={0.5} scale={20} blur={2} far={4} />
-            <OrbitControls makeDefault={!selectedItem} minDistance={3} maxDistance={35} minPolarAngle={0} maxPolarAngle={Math.PI / 2} enableDamping />
+            <ContactShadows position={[0,0,0]} opacity={0.4} scale={500} blur={2.5} far={20} />
+            <OrbitControls makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={Infinity} maxPolarAngle={Math.PI / 2.1} dampingFactor={0.05} enableDamping />
           </Canvas>
         </div>
       </div>
-
       <Footer />
-      
     </div>
   );
 };

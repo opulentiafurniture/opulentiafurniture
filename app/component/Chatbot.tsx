@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Sparkles } from "lucide-react";
+import { X, Send, Sparkles, MessageSquare } from "lucide-react";
 
 type Message = {
     id: string;
@@ -86,7 +86,7 @@ export default function OpulentiaChatbot() {
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-8 right-8 z-[100] h-16 w-16 rounded-full shadow-[0_0_40px_rgba(212,175,55,0.4)] border border-[#D4AF37]/40 bg-[#0A192F] flex items-center justify-center"
             >
-                <img src="/logo-with-text.png" alt="O" className="h-8 w-auto drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]" />
+               <MessageSquare size={20} className="text-white" />
             </motion.button>
 
             <AnimatePresence>
