@@ -5,23 +5,21 @@ import { Minus, Plus, X, ArrowRight, Loader2, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-
-// Custom components
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
-// Helper function to format prices in LKR
+
 const formatCurrency = (amount: number) => {
   return `Rs. ${amount.toLocaleString('en-LK')}`;
 };
 
-// Updated mock data with realistic LKR prices
+
 const INITIAL_CART_ITEMS = [
   {
     id: 1,
     name: "King sized bed",
     variant: "Ivory",
-    price: 120000, // Rs. 120,000
+    price: 120000, 
     quantity: 2,
     image: "/slide1.jpg", 
   },
@@ -29,7 +27,7 @@ const INITIAL_CART_ITEMS = [
     id: 2,
     name: "Royal velvet single sofa",
     variant: "Red",
-    price: 132000, // Rs. 132,000
+    price: 132000, 
     quantity: 1,
     image: "/sofa.png", 
   },
@@ -38,17 +36,14 @@ const INITIAL_CART_ITEMS = [
 export default function CartPage() {
   const router = useRouter();
   
-  // States
+  
   const [cartItems, setCartItems] = React.useState<any[]>([]);
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
   
-  // Coupon States
   const [showCouponInput, setShowCouponInput] = React.useState(false);
   const [couponCode, setCouponCode] = React.useState("");
   const [discount, setDiscount] = React.useState(0);
-
-  // 1. Load cart from LocalStorage on mount
   React.useEffect(() => {
     const savedCart = localStorage.getItem("opulentia_cart");
     if (savedCart) {
@@ -59,14 +54,14 @@ export default function CartPage() {
     setIsLoaded(true);
   }, []);
 
-  // 2. Save cart to LocalStorage whenever it changes
+
   React.useEffect(() => {
     if (isLoaded) {
       localStorage.setItem("opulentia_cart", JSON.stringify(cartItems));
     }
   }, [cartItems, isLoaded]);
 
-  // Calculations
+
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const total = Math.max(0, subtotal - discount);
 
@@ -89,7 +84,7 @@ export default function CartPage() {
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
     if (couponCode.toUpperCase() === "LUXURY10") {
-      setDiscount(10000); // Rs. 10,000 off
+      setDiscount(10000); 
       alert("Coupon applied successfully!");
     } else {
       alert("Invalid coupon code. Try LUXURY10");
@@ -99,19 +94,17 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     setIsCheckingOut(true);
-    // Redirect the user to the shipping details page!
-    // We don't clear the cart here, because they still need to pay.
+ 
     router.push("/checkout"); 
   };
 
-  // Prevent hydration mismatch by not rendering the cart list until localStorage is checked
+
   if (!isLoaded) return null; 
 
   return (
     <div className="min-h-screen bg-[#FFFDF9] font-sans text-[#0A192F] flex flex-col">
       <Navbar />
 
-      {/* Breadcrumb Navigation */}
       <div className="bg-[#FFFDF9] border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 text-sm flex items-center gap-2">
           <a href="/" className="font-semibold text-[#0A192F] hover:text-[#D4AF37] transition-colors">
@@ -146,14 +139,14 @@ export default function CartPage() {
                   {cartItems.map((item) => (
                     <motion.div 
                       key={item.id} 
-                      layout // smoothly animates the list when items are removed
+                      layout 
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -50, height: 0 }} // Slide out animation
+                      exit={{ opacity: 0, x: -50, height: 0 }}
                       transition={{ duration: 0.3 }}
                       className="grid grid-cols-1 md:grid-cols-12 items-center gap-6 py-8 border-b border-gray-100 overflow-hidden"
                     >
-                      {/* Product Details */}
+                      
                       <div className="col-span-1 md:col-span-6 flex items-center gap-6">
                         <div className="w-24 h-24 bg-gray-50 rounded-sm flex items-center justify-center p-2 shrink-0 border border-gray-100">
                           <img 
@@ -168,13 +161,13 @@ export default function CartPage() {
                         </div>
                       </div>
 
-                      {/* Price */}
+                
                       <div className="col-span-1 md:col-span-2 flex justify-between md:justify-center items-center">
                         <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest">Price</span>
                         <span className="font-semibold text-gray-700 whitespace-nowrap">{formatCurrency(item.price)}</span>
                       </div>
 
-                      {/* Quantity Control */}
+                   
                       <div className="col-span-1 md:col-span-2 flex justify-between md:justify-center items-center">
                         <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quantity</span>
                         <div className="flex items-center gap-3 bg-[#F4F4F4] rounded-full px-3 py-1.5">
@@ -196,7 +189,7 @@ export default function CartPage() {
                         </div>
                       </div>
 
-                      {/* Total & Remove */}
+                    
                       <div className="col-span-1 md:col-span-2 flex items-center justify-between md:justify-end gap-6">
                         <div className="flex justify-between w-full md:w-auto items-center">
                           <span className="md:hidden text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total</span>
@@ -231,7 +224,7 @@ export default function CartPage() {
             )}
           </div>
 
-          {/* Right Column: Order Summary Panel */}
+          
           <div className="w-full lg:w-1/3">
             <div className="bg-[#F4F4F4] rounded-sm overflow-hidden sticky top-32">
               
@@ -250,13 +243,12 @@ export default function CartPage() {
                   </div>
                 )}
 
-                {/* Updated Shipping Logic */}
                 <div className="flex justify-between items-center text-sm mb-6">
                   <span className="text-gray-500">Shipping</span>
                   <span className="font-medium text-gray-500 text-[11px] uppercase tracking-wider">Calculated at checkout</span>
                 </div>
                 
-                {/* Coupon Logic */}
+           
                 {!showCouponInput ? (
                   <button 
                     onClick={() => setShowCouponInput(true)}
@@ -280,13 +272,13 @@ export default function CartPage() {
                 )}
               </div>
 
-              {/* Total Section */}
+          
               <div className="bg-[#EAEAEA] p-8 py-6 flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-700">Total</span>
                 <span className="text-xl font-bold text-gray-800">{formatCurrency(total)}</span>
               </div>
 
-              {/* Checkout Button */}
+           
               <button 
                 onClick={handleCheckout}
                 disabled={cartItems.length === 0 || isCheckingOut}

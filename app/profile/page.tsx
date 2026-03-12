@@ -6,12 +6,10 @@ import { User, Mail, Shield, Calendar, Loader2, Package, Heart, Edit2, ShoppingB
 import { useRouter } from "next/navigation"; 
 import { cn } from "@/lib/utils";
 
-// Firebase imports
+
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-
-// Custom components
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
@@ -42,11 +40,9 @@ export default function OpulentiaProfile() {
   const router = useRouter();
   const [userData, setUserData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
-  
-  // Tab State
+
   const [activeTab, setActiveTab] = React.useState("Profile Details");
 
-  // Edit Mode States
   const [isEditing, setIsEditing] = React.useState(false);
   const [editName, setEditName] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
@@ -116,7 +112,7 @@ export default function OpulentiaProfile() {
     );
   }
 
-  // --- TAB CONTENT COMPONENTS ---
+
 
   const renderProfileDetails = () => (
     <>
@@ -141,7 +137,7 @@ export default function OpulentiaProfile() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Display Name */}
+   
         <div className="space-y-2 group">
           <label className="text-[9px] text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
             <User size={12} /> Full Name
@@ -162,7 +158,7 @@ export default function OpulentiaProfile() {
           )}
         </div>
 
-        {/* Email */}
+
         <div className="space-y-2">
           <label className="text-[9px] text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
             <Mail size={12} /> Email Address
@@ -172,7 +168,7 @@ export default function OpulentiaProfile() {
           </div>
         </div>
 
-        {/* Account Role */}
+ 
         <div className="space-y-2">
           <label className="text-[9px] text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
             <Shield size={12} /> Account Tier
@@ -182,7 +178,7 @@ export default function OpulentiaProfile() {
           </div>
         </div>
 
-        {/* Member Since */}
+
         <div className="space-y-2">
           <label className="text-[9px] text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
             <Calendar size={12} /> Member Since
@@ -214,8 +210,7 @@ export default function OpulentiaProfile() {
         <h1 className="text-3xl font-extralight tracking-tighter uppercase mb-2">Order History</h1>
         <p className="text-[11px] text-[#D4AF37] tracking-[0.3em] uppercase">Track and manage your purchases</p>
       </header>
-      
-      {/* Empty State for Orders */}
+  
       <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-white/10 rounded-sm bg-white/[0.01]">
         <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mb-6">
           <Package size={24} className="text-[#D4AF37]" />
@@ -236,7 +231,6 @@ export default function OpulentiaProfile() {
         <p className="text-[11px] text-[#D4AF37] tracking-[0.3em] uppercase">Curate your perfect interior</p>
       </header>
 
-      {/* Empty State for Wishlist */}
       <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-white/10 rounded-sm bg-white/[0.01]">
         <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mb-6">
           <Heart size={24} className="text-[#D4AF37]" />
@@ -255,8 +249,7 @@ export default function OpulentiaProfile() {
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-12 lg:py-20 flex flex-col lg:flex-row gap-12">
-        
-        {/* SIDEBAR NAVIGATION */}
+
         <aside className="w-full lg:w-64 space-y-2 shrink-0">
           <h2 className="text-[10px] text-white/40 uppercase tracking-[0.3em] mb-6 px-4">Account Menu</h2>
           <nav className="space-y-1">
@@ -282,11 +275,10 @@ export default function OpulentiaProfile() {
           </nav>
         </aside>
 
-        {/* MAIN CONTENT AREA */}
         <section className="flex-1 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div 
-              key={activeTab} // This key forces the animation to trigger when the tab changes
+              key={activeTab} 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}

@@ -87,7 +87,7 @@ const ProductCard = ({ product }: { product: any }) => (
               localStorage.setItem(key, JSON.stringify(cart));
               const btn = e.currentTarget as HTMLButtonElement;
               btn.animate([{ transform: "scale(1)" }, { transform: "scale(1.06)" }, { transform: "scale(1)" }], { duration: 160 });
-              // navigate to cart page
+             
               window.location.href = "/cart";
             } catch (err) {
               console.error("Cart error:", err);
@@ -117,7 +117,7 @@ const ProductCard = ({ product }: { product: any }) => (
               } else {
                 btn.classList.remove("bg-red-500", "text-white");
               }
-              // optional: simple visual feedback (could replace with toast)
+
               btn.animate([{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], { duration: 180 });
             } catch (err) {
               console.error("Wishlist error:", err);

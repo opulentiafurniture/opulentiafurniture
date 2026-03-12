@@ -5,7 +5,7 @@ import { User, ShoppingCart, Search, LogOut, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-// Firebase imports
+
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 
@@ -15,7 +15,7 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Listen for Firebase Auth state changes
+
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -23,7 +23,6 @@ const Navbar = () => {
     return () => unsubscribe();
   }, []);
 
-  // Close dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -37,9 +36,7 @@ const Navbar = () => {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      setIsDropdownOpen(false); // Close menu on sign out
-      // Removed the router.push("/csignin") here. 
-      // The user will stay on the current page, and the nav will update automatically!
+      setIsDropdownOpen(false); 
     } catch (error) {
       console.error("Error signing out:", error);
     }
@@ -54,7 +51,7 @@ const Navbar = () => {
     { name: "Contact", href: "/#Footer" }, 
   ];
 
-  // Helper to safely get a display name
+
   const getDisplayName = () => {
     if (!user) return "";
     return user.displayName || user.email?.split('@')[0] || "Account";
@@ -93,7 +90,7 @@ const Navbar = () => {
 
         <div className="flex items-center gap-6 px-10">
           
-          {/* Conditional Auth Rendering */}
+       
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -110,7 +107,7 @@ const Navbar = () => {
                 />
               </button>
 
-              {/* Dropdown Menu */}
+           
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-4 w-48 bg-white shadow-xl rounded-sm border border-black/10 overflow-hidden z-[110] py-1">
                   <button
@@ -133,7 +130,7 @@ const Navbar = () => {
               )}
             </div>
           ) : (
-            /* Logged Out State: Just the User icon routing to Sign In */
+         
             <button
               onClick={() => router.push("/csignin")}
               className="text-white hover:text-[#D4AF37] transition-colors p-2 rounded-full hover:bg-white/5"
