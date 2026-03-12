@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { X, Send, Sparkles } from "lucide-react";
 
 type Message = {
     id: string;
@@ -11,16 +10,19 @@ type Message = {
     sender: "user" | "bot";
 };
 
-export default function Chatbot() {
+export default function OpulentiaChatbot() {
     const [isOpen, setIsOpen] = React.useState(false);
     const [inputValue, setInputValue] = React.useState("");
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
+    
+    // Generate a unique session ID once when the component mounts
+    const [sessionId] = React.useState(() => `sid-${Math.random().toString(36).substr(2, 9)}`);
 
     const [messages, setMessages] = React.useState<Message[]>([
         {
-            id: "1",
-            text: "Welcome to Opulentia. How may our design concierge assist you today?",
+            id: "initial-msg",
+            text: "Welcome to Opulentia. How may our design concierge assist your vision today?",
             sender: "bot",
         },
     ]);
@@ -29,133 +31,112 @@ export default function Chatbot() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inputValue.trim()) return;
+        if (!inputValue.trim() || isTyping) return;
 
-        const newUserMsg: Message = {
-            id: Date.now().toString(),
-            text: inputValue,
-            sender: "user",
-        };
+        const userText = inputValue;
+        const userMsgId = `user-${Date.now()}`;
         
-        setMessages((prev) => [...prev, newUserMsg]);
+        setMessages((prev) => [...prev, { id: userMsgId, text: userText, sender: "user" }]);
         setInputValue("");
         setIsTyping(true);
 
-        setTimeout(() => {
-            const botResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                text: "Thank you for reaching out. One of our luxury interior specialists will review your request and connect with you shortly.",
+        try {
+            // Ensure this is your PRODUCTION URL from the n8n Webhook node
+            const N8N_URL = "https://opulentia.app.n8n.cloud/webhook/0eee51b6-c58b-4891-99d4-90403a875a6d/chat";
+
+            const response = await fetch(N8N_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: userText,
+                    sessionId: sessionId,
+                }),
+            });
+
+            if (!response.ok) throw new Error("Network response was not ok");
+
+            const data = await response.json();
+
+            setMessages((prev) => [...prev, {
+                id: `bot-${Date.now()}`,
+                text: data.output || "I am currently refining our records. Please try again shortly.",
                 sender: "bot",
-            };
-            setMessages((prev) => [...prev, botResponse]);
+            }]);
+        } catch (error) {
+            console.error("Chat Error:", error);
+            setMessages((prev) => [...prev, {
+                // Unique ID prevents the "Duplicate Key" console error
+                id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                text: "My apologies, the connection to our concierge is momentarily interrupted.",
+                sender: "bot"
+            }]);
+        } finally {
             setIsTyping(false);
-        }, 1500);
+        }
     };
 
     return (
         <>
             <motion.button
                 initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                animate={{ scale: 1, opacity: isOpen ? 0 : 1 }}
+                whileHover={{ scale: 1.1 }}
                 onClick={() => setIsOpen(true)}
-                className={cn(
-                    "fixed bottom-6 right-6 z-[100] h-16 w-16 rounded-full shadow-[0_0_30px_rgba(212,175,55,0.3)] border border-[#D4AF37]/50 overflow-hidden bg-[#0A192F] flex items-center justify-center transition-all",
-                    isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
-                )}
-                aria-label="Open chat"
+                className="fixed bottom-8 right-8 z-[100] h-16 w-16 rounded-full shadow-[0_0_40px_rgba(212,175,55,0.4)] border border-[#D4AF37]/40 bg-[#0A192F] flex items-center justify-center"
             >
-                <img 
-                    src="/logo-with-text.png" 
-                    alt="Chat with Opulentia" 
-                    className="h-10 w-10 object-contain drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]" 
-                />
+                <img src="/logo-with-text.png" alt="O" className="h-8 w-auto drop-shadow-[0_0_8px_rgba(212,175,55,0.5)]" />
             </motion.button>
 
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="fixed bottom-6 right-6 z-[110] w-[350px] sm:w-[400px] h-[600px] max-h-[85vh] bg-white flex flex-col rounded-sm shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-gray-200 overflow-hidden"
+                        exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                        className="fixed bottom-8 right-8 z-[110] w-[380px] h-[600px] max-h-[85vh] bg-white flex flex-col rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
                     >
-                        <div className="bg-[#0A192F] px-6 py-4 flex items-center justify-between border-b border-[#D4AF37]/30 shrink-0">
+                        <div className="bg-[#0A192F] px-6 py-5 flex items-center justify-between border-b border-[#D4AF37]/30">
                             <div className="flex items-center gap-3">
-                                <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center border border-[#D4AF37]/50">
-                                     <img src="/logo-with-text.png" alt="O" className="h-4 w-4 object-contain" />
-                                </div>
-                                <div>
-                                    <h3 className="text-[#D4AF37] text-[11px] font-bold tracking-[0.2em] uppercase">Opulentia Concierge</h3>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-white/60 text-[9px] uppercase tracking-wider">Online</span>
-                                    </div>
-                                </div>
+                                <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                <h3 className="text-[#D4AF37] text-[10px] font-bold tracking-[0.3em] uppercase">Opulentia </h3>
                             </div>
-                            <button 
-                                onClick={() => setIsOpen(false)}
-                                className="text-white/60 hover:text-white transition-colors p-1"
-                            >
-                                <X size={18} />
-                            </button>
+                            <button onClick={() => setIsOpen(false)} className="text-white/40 hover:text-white"><X size={20} /></button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-6 bg-[#F9F9F9] space-y-6">
                             {messages.map((msg) => (
-                                <div 
-                                    key={msg.id} 
-                                    className={cn(
-                                        "flex w-full",
-                                        msg.sender === "user" ? "justify-end" : "justify-start"
-                                    )}
-                                >
-                                    <div 
-                                        className={cn(
-                                            "max-w-[80%] rounded-sm px-4 py-3 text-sm font-light leading-relaxed",
-                                            msg.sender === "user" 
-                                                ? "bg-[#0A192F] text-white rounded-br-none shadow-md" 
-                                                : "bg-white border border-gray-100 text-gray-800 rounded-bl-none shadow-sm"
-                                        )}
-                                    >
+                                <div key={msg.id} className={`flex w-full ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                                    <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-sm font-light ${
+                                        msg.sender === "user" ? "bg-[#0A192F] text-white rounded-br-none" : "bg-white border text-black rounded-bl-none shadow-sm"
+                                    }`}>
                                         {msg.text}
                                     </div>
                                 </div>
                             ))}
-                            
                             {isTyping && (
-                                <div className="flex w-full justify-start">
-                                    <div className="bg-white border border-gray-100 rounded-sm rounded-bl-none px-4 py-3 shadow-sm flex items-center gap-1">
-                                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full" />
-                                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full" />
-                                        <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full" />
+                                <div className="flex justify-start">
+                                    <div className="bg-white border rounded-2xl rounded-bl-none px-5 py-3 flex gap-1">
+                                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full" />
+                                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full" />
+                                        <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full" />
                                     </div>
                                 </div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        <form 
-                            onSubmit={handleSendMessage}
-                            className="p-4 bg-white border-t border-gray-100 flex items-center gap-2 shrink-0"
-                        >
+                        <form onSubmit={handleSendMessage} className="p-5 bg-[#F9F9F9] border-t flex gap-3">
                             <input
                                 type="text"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                placeholder="TYPE YOUR MESSAGE..."
-                                className="flex-1 h-12 bg-gray-50 border border-gray-200 rounded-sm px-4 text-xs font-light text-[#0A192F] focus:outline-none focus:ring-1 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition-all placeholder:text-[10px] placeholder:tracking-widest placeholder:uppercase"
+                                placeholder="TYPE YOUR INQUIRY..."
+                                className="flex-1 h-12 bg-gray border rounded-xl px-4 text-xs font-light focus:outline-none focus:ring-1 focus:ring-[#D4AF37] text-black placeholder:text-gray-400"
                             />
-                            <button
-                                type="submit"
-                                disabled={!inputValue.trim() || isTyping}
-                                className="h-12 w-12 bg-[#D4AF37] text-[#0A192F] rounded-sm flex items-center justify-center hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                            >
-                                <Send size={16} className="-ml-1" />
+                            <button type="submit" disabled={!inputValue.trim() || isTyping} className="h-12 w-12 bg-[#D4AF37] rounded-xl flex items-center justify-center hover:opacity-90 transition-opacity disabled:opacity-30">
+                                <Send size={18} />
                             </button>
                         </form>
                     </motion.div>
