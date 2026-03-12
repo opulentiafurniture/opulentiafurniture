@@ -232,7 +232,7 @@ export default function DiningRoomPage() {
             <p className="text-[10px] uppercase tracking-[0.45em] mb-3">Exclusive Offer</p>
             <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wide">Redefine Your Dining Experience</h3>
           </div>
-          <a href="/cart">
+          <a href="/">
             <Button className="bg-[#0A192F] text-white hover:bg-white hover:text-[#0A192F]">
               Shop Collection
             </Button>

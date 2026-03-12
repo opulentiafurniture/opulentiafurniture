@@ -106,7 +106,7 @@ export default function AboutUsPage() {
               From statement sofas to serene bedroom pieces, each item is chosen for its craftsmanship, comfort, and timeless appeal. We focus on helping customers create homes that feel luxurious without losing warmth and functionality.
             </p>
             <a
-              href="/living"
+              href="/"
               className="inline-flex items-center gap-2 uppercase tracking-[0.18em] text-[11px] text-[#0A192F] hover:text-[#D4AF37] transition-colors"
             >
               Explore Collections <ArrowRight size={14} />
