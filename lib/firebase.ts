@@ -2,20 +2,22 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
+// Your web app's Firebase configuration
+// Using process.env ensures these keys stay private on GitHub
 const firebaseConfig = {
-  apiKey: "AIzaSyDfdC2i74qft6ndW8M64gA2R6iGuu6PkAQ",
-  authDomain: "opulentia-web.firebaseapp.com",
-  projectId: "opulentia-web",
-  storageBucket: "opulentia-web.firebasestorage.app",
-  messagingSenderId: "921539233171",
-  appId: "1:921539233171:web:f392c0284db1f9e9db1466",
-  measurementId: "G-SF23V3HF3L"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase only if it hasn't been initialized already
+// Initialize Firebase (Singleton pattern for Next.js)
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Export services to be used in your Sign-In page
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export default app;
+// Initialize Services
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { auth, db };
