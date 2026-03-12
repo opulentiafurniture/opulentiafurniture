@@ -6,7 +6,7 @@ import { Search, ShoppingCart, User, ChevronRight, Star, Heart, Menu } from "luc
 import { cn } from "@/lib/utils";
 import Navbar from "./component/navbar";
 import Footer from "./component/footer";
-
+import Chatbot from "./component/Chatbot";
 
 
 const Button = React.forwardRef(({ className, variant = "default", ...props }: any, ref: any) => {
@@ -229,6 +229,7 @@ export default function OpulentiaHome() {
           </div>
         ))}
       </section>
+       <Chatbot />
 
       <Footer />
     </div>

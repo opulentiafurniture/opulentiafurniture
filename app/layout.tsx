@@ -22,7 +22,7 @@ export default function RootLayout({
         {children}
         
         {/* 2. Add it here so it floats on every page! */}
-        <Chatbot />
+       
       </body>
     </html>
   );
