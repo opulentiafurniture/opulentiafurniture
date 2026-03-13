@@ -12,6 +12,7 @@ const Navbar = () => {
   const [user, setUser] = React.useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [cartCount, setCartCount] = React.useState(0);
+  const [searchQuery, setSearchQuery] = React.useState("");
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const updateCartCount = React.useCallback(() => {
@@ -100,6 +101,16 @@ const Navbar = () => {
     }
   };
 
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return;
+
+    router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+    setSearchQuery("");
+  };
+
   return (
     <nav className="w-full flex flex-col sticky top-0 z-[100] shadow-2xl">
       <div className="h-2 w-full bg-[#D4AF37] border-b border-black/20" />
@@ -137,7 +148,8 @@ const Navbar = () => {
                 {link.name}
                 <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#D4AF37] transition-all duration-500 group-hover:w-full" />
               </a>
-            ))}
+            )
+          )}
         </div>
 
         <div className="flex items-center gap-6 px-10">
@@ -222,8 +234,7 @@ const Navbar = () => {
           </button>
 
           <form
-            method="get"
-            action="/search"
+            onSubmit={handleSearchSubmit}
             role="search"
             className="relative w-full max-w-xs"
           >
@@ -231,10 +242,22 @@ const Navbar = () => {
               id="navbar-search"
               name="q"
               type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="SEARCH CATALOGUE..."
-              className="pl-10 pr-4 h-10 w-full text-[10px] tracking-widest uppercase bg-gray-50 border border-gray-200 rounded-md placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition"
+              className="pl-10 pr-12 h-10 w-full text-[10px] tracking-widest uppercase bg-gray-50 border border-gray-200 rounded-md placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition"
             />
-            <Search className="absolute left-3 top-3 text-gray-400" size={14} />
+
+            <Search className="absolute left-3 top-3 text-gray-400 pointer-events-none" size={14} />
+
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-[#D4AF37] transition-colors"
+              aria-label="Search"
+              title="Search"
+            >
+              <Search size={14} />
+            </button>
           </form>
         </div>
       </div>
