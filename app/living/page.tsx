@@ -31,11 +31,11 @@ const Button = React.forwardRef(({ className, variant = "default", ...props }: a
 Button.displayName = "Button";
 
 const LIVING_PRODUCTS = [
-  { id: 7, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas",href: "/product/7" },
-  { id: 8, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Shelf",href: "/product/8" },
-  { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables",href: "/product/9" }
+  { id: 7, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas", href: "/product/7" },
+  { id: 8, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Shelf", href: "/product/8" },
+  { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables", href: "/product/9" }
+];
 
-]
 const FEATURES = [
   {
     title: "Curated Comfort",
@@ -50,6 +50,7 @@ const FEATURES = [
     text: "From sofas to tables, each piece is selected to create a luxurious focal point.",
   },
 ];
+
 type Product = {
   id: number;
   name: string;
@@ -103,6 +104,11 @@ const ProductCard = ({ product }: { product: Product }) => {
 
                 localStorage.setItem(key, JSON.stringify(cart));
                 window.dispatchEvent(new Event("cartUpdated"));
+                window.dispatchEvent(
+                  new CustomEvent("cartAdded", {
+                    detail: { name: product.name },
+                  })
+                );
               } catch (err) {
                 console.error("Cart error:", err);
               }
@@ -170,7 +176,7 @@ const ProductCard = ({ product }: { product: Product }) => {
 export default function LivingRoomPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-[#0A192F]">
-      <Navbar/>
+      <Navbar />
 
       <section className="relative h-[85vh] min-h-[560px] overflow-hidden">
         <img

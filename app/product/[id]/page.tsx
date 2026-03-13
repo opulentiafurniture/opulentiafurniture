@@ -12,16 +12,16 @@ import { cn } from "@/lib/utils";
 
 // --- MOCK DATA & CONFIG ---
 const ALL_PRODUCTS = [
-   { id: 1, name: "Royal King Bed", price: "Rs 129,990", oldPrice: "Rs 145,000", img: "/bedroom-bed.jpeg", rating: 5, category: "Beds", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "A luxurious king bed with ornate headboard and rich upholstery." },
-    { id: 2, name: "Luxury Wardrobe Unit", price: "Rs 159,900", oldPrice: "Rs 175,000", img: "/bedroom-wardrobe.jpeg", rating: 5, category: "Wardrobes", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Spacious wardrobe unit with elegant finishes and internal shelving." },
-    { id: 3, name: "Elegant Dressing Table", price: "Rs 74,990", oldPrice: "Rs 84,000", img: "/bedroom-dresser.jpeg", rating: 4, category: "Dressers", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "A compact dressing table with a sleek mirror and storage drawers." },
-    { id: 4, name: "Grand Dining Table", price: "Rs 119,990", oldPrice: "Rs 134,990", img: "/dining-table.jpg", rating: 5, category: "Tables", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Large dining table crafted from solid wood for timeless gatherings." },
-    { id: 5, name: "Oak Dining Chair", price: "Rs 68,500", oldPrice: "Rs 77,000", img: "/dining-chair.jpeg", rating: 4, category: "Chairs", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Comfortable oak dining chair with a classic silhouette." },
-    { id: 6, name: "Luxury Pantry Cupboard", price: "Rs 84,900", oldPrice: "Rs 95,000", img: "/dining-cupboard.jpeg", rating: 5, category: "Storage", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Handsome pantry cupboard with ample storage and soft-close doors." },
-    { id: 7, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Sumptuous velvet sofa with deep seating for luxurious comfort." },
-    { id: 8, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Shelf", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Minimalist bookshelf perfect for styling your living space." },
-    { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Elegant marble-top coffee table with sturdy metal base." }
-  ];
+  { id: 1, name: "Royal King Bed", price: "Rs 129,990", oldPrice: "Rs 145,000", img: "/bedroom-bed.jpeg", rating: 5, category: "Beds", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "A luxurious king bed with ornate headboard and rich upholstery." },
+  { id: 2, name: "Luxury Wardrobe Unit", price: "Rs 159,900", oldPrice: "Rs 175,000", img: "/bedroom-wardrobe.jpeg", rating: 5, category: "Wardrobes", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Spacious wardrobe unit with elegant finishes and internal shelving." },
+  { id: 3, name: "Elegant Dressing Table", price: "Rs 74,990", oldPrice: "Rs 84,000", img: "/bedroom-dresser.jpeg", rating: 4, category: "Dressers", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "A compact dressing table with a sleek mirror and storage drawers." },
+  { id: 4, name: "Grand Dining Table", price: "Rs 119,990", oldPrice: "Rs 134,990", img: "/dining-table.jpg", rating: 5, category: "Tables", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Large dining table crafted from solid wood for timeless gatherings." },
+  { id: 5, name: "Oak Dining Chair", price: "Rs 68,500", oldPrice: "Rs 77,000", img: "/dining-chair.jpeg", rating: 4, category: "Chairs", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Comfortable oak dining chair with a classic silhouette." },
+  { id: 6, name: "Luxury Pantry Cupboard", price: "Rs 84,900", oldPrice: "Rs 95,000", img: "/dining-cupboard.jpeg", rating: 5, category: "Storage", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Handsome pantry cupboard with ample storage and soft-close doors." },
+  { id: 7, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Sumptuous velvet sofa with deep seating for luxurious comfort." },
+  { id: 8, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Shelf", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Minimalist bookshelf perfect for styling your living space." },
+  { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Elegant marble-top coffee table with sturdy metal base." }
+];
 
 const relatedProducts = ALL_PRODUCTS;
 
@@ -34,13 +34,13 @@ const floorMaterials = [
 
 const VisualizationPage = () => {
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState('furnish'); 
+  const [activeTab, setActiveTab] = useState('furnish');
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
-  const [sceneItems, setSceneItems] = useState<any[]>([]); 
+  const [sceneItems, setSceneItems] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState('living');
 
   const [roomShape, setRoomShape] = useState('rectangle');
@@ -60,7 +60,7 @@ const VisualizationPage = () => {
     { id: 'bedroom', label: 'Bedroom' }, { id: 'decoration', label: 'Decoration' }
   ];
 
-const furnitureCatalog: Record<string, any[]> = {
+  const furnitureCatalog: Record<string, any[]> = {
     living: [
       { id: 'lv1', name: 'Classic Oak Chair', price: 'LKR 45,000', url: '/models/Chair.glb' },
       { id: 'lv2', name: 'Velvet Sofa', price: 'LKR 245,000', url: '/models/Chair.glb' },
@@ -98,14 +98,14 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
   return (
     <group>
       {isSelected && mesh && (
-        <TransformControls 
+        <TransformControls
           ref={controlsRef} object={mesh} mode={mode} showY={false}
           onMouseUp={() => mesh && onUpdatePosition([mesh.position.x, floorY, mesh.position.z])}
         />
       )}
-      <primitive 
-        ref={setMesh} object={clonedScene} position={[position[0], floorY, position[2]]} 
-        onClick={(e: any) => { e.stopPropagation(); onSelect(); }} castShadow 
+      <primitive
+        ref={setMesh} object={clonedScene} position={[position[0], floorY, position[2]]}
+        onClick={(e: any) => { e.stopPropagation(); onSelect(); }} castShadow
       />
     </group>
   );
@@ -114,14 +114,14 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  
+
   // Design States
   const [product, setProduct] = useState<any>(null);
   const [sceneItems, setSceneItems] = useState<any[]>([]);
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [orbitEnabled, setOrbitEnabled] = useState(true);
-  
+
   // Room Config
   const [roomWidth, setRoomWidth] = useState(8);
   const [roomLength, setRoomLength] = useState(8);
@@ -157,7 +157,6 @@ export default function ProductDetailPage() {
   if (!product) return <div className="h-screen w-full flex items-center justify-center font-bold text-gray-400">Loading Opulentia...</div>;
 
   return (
-    
     <div className="min-h-screen bg-white text-[#0A192F]">
       <Navbar />
 
@@ -187,87 +186,92 @@ export default function ProductDetailPage() {
             <p className="text-gray-500 text-sm leading-relaxed border-t border-gray-100 pt-6">{product.desc}</p>
           </div>
 
-            <div className="flex gap-4 pt-6 border-t border-gray-100">
+          <div className="flex gap-4 pt-6 border-t border-gray-100">
             <button
               className="flex items-center gap-3 px-4 py-2 bg-[#D4AF371] text-[#071226] rounded-lg shadow-lg hover:shadow-2xl transform hover:-translate-y-0.5 transition-all duration-150"
               title="Add to cart"
               onClick={(e) => {
-              e.stopPropagation();
-              const key = "opulentia_cart";
-              try {
-                const raw = localStorage.getItem(key) || "[]";
-                const cart: any[] = JSON.parse(raw);
-                const existing = cart.find((item) => item.id === product.id);
+                e.stopPropagation();
+                const key = "opulentia_cart";
+                try {
+                  const raw = localStorage.getItem(key) || "[]";
+                  const cart: any[] = JSON.parse(raw);
+                  const existing = cart.find((item) => item.id === product.id);
 
-                if (existing) {
-                existing.qty = (existing.qty || 1) + 1;
-                } else {
-                cart.push({
-                  id: product.id,
-                  qty: 1,
-                  name: product.name,
-                  price: product.price,
-                  img: product.img,
-                });
-                }
+                  if (existing) {
+                    existing.qty = (existing.qty || 1) + 1;
+                  } else {
+                    cart.push({
+                      id: product.id,
+                      qty: 1,
+                      name: product.name,
+                      price: product.price,
+                      img: product.img,
+                    });
+                  }
 
-                localStorage.setItem(key, JSON.stringify(cart));
+                  localStorage.setItem(key, JSON.stringify(cart));
                 // small visual feedback: dispatch a global event other parts of app can use
-                window.dispatchEvent(new Event("cartUpdated"));
-              } catch (err) {
-                console.error("Cart error:", err);
-              }
+                  window.dispatchEvent(new Event("cartUpdated"));
+                  window.dispatchEvent(
+                    new CustomEvent("cartAdded", {
+                      detail: { name: product.name },
+                    })
+                  );
+                } catch (err) {
+                  console.error("Cart error:", err);
+                }
               }}
               aria-label={`Add ${product?.name} to cart`}
             >
               <div className="flex items-center justify-center w-9 h-9 rounded-md bg-white/30 backdrop-blur-sm">
-              <ShoppingCart size={18} className="text-[#071226]" />
+                <ShoppingCart size={18} className="text-[#071226]" />
               </div>
               <div className="flex flex-col text-left leading-tight">
-              <span className="text-sm font-black uppercase tracking-wide">Add to Cart</span>
-              <span className="text-xs text-[#071226]/80 font-mono">{product.price}</span>
+                <span className="text-sm font-black uppercase tracking-wide">Add to Cart</span>
+                <span className="text-xs text-[#071226]/80 font-mono">{product.price}</span>
               </div>
             </button>
-            
+
             <button
               className="w-16 border border-gray-200 flex items-center justify-center hover:bg-gray-50"
               title="Add to wishlist"
               onClick={(e) => {
-              e.stopPropagation();
-              const key = "opulentia_wishlist";
-              try {
-                const raw = localStorage.getItem(key) || "[]";
-                const wishlist: any[] = JSON.parse(raw);
-                const exists = wishlist.find((item) => item.id === product.id);
+                e.stopPropagation();
+                const key = "opulentia_wishlist";
+                try {
+                  const raw = localStorage.getItem(key) || "[]";
+                  const wishlist: any[] = JSON.parse(raw);
+                  const exists = wishlist.find((item) => item.id === product.id);
 
-                if (!exists) {
-                const newItem = {
-                  id: product.id,
-                  name: product.name,
-                  price: product.price,
-                  img: product.img,
-                  addedAt: Date.now(),
-                };
-                wishlist.push(newItem);
-                localStorage.setItem(key, JSON.stringify(wishlist));
-                // notify profile page (or any listener) to re-render its wishlist
-                window.dispatchEvent(new CustomEvent("wishlistUpdated", { detail: newItem }));
-                } else {
-                // already in wishlist — optional: you can toggle remove here if desired
-                console.info("Item already in wishlist:", product.id);
+                  if (!exists) {
+                    const newItem = {
+                      id: product.id,
+                      name: product.name,
+                      price: product.price,
+                      img: product.img,
+                      addedAt: Date.now(),
+                    };
+                    wishlist.push(newItem);
+                    localStorage.setItem(key, JSON.stringify(wishlist));
+                    // notify profile page (or any listener) to re-render its wishlist
+                    window.dispatchEvent(new CustomEvent("wishlistUpdated", { detail: newItem }));
+                  } else {
+                  // already in wishlist — optional: you can toggle remove here if desired
+                    console.info("Item already in wishlist:", product.id);
+                  }
+                } catch (err) {
+                  console.error("Wishlist error:", err);
                 }
-              } catch (err) {
-                console.error("Wishlist error:", err);
-              }
               }}
               aria-label={`Add ${product?.name} to wishlist`}
             >
               <Heart size={20} />
             </button>
-            </div>
+          </div>
         </div>
       </main>
-      
+
       {/* --- OPULENTIA INTEGRATED STUDIO --- */}
       <section className="max-w-7xl mx-auto px-6 py-20 bg-gray-50/50">
         <div className="mb-10 flex justify-between items-end">
@@ -276,10 +280,9 @@ export default function ProductDetailPage() {
         </div>
 
         <div className="flex flex-col lg:flex-row h-[750px] bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-2xl relative">
-          
           {/* Sidebar Left: Room & Wall Settings */}
           <div className="w-full lg:w-72 border-r bg-white flex flex-col p-6 z-10 overflow-y-auto">
-            <h3 className="text-[10px] font-black uppercase text-gray-400 mb-6 flex items-center gap-2"><Layout size={12}/> Room Settings</h3>
+            <h3 className="text-[10px] font-black uppercase text-gray-400 mb-6 flex items-center gap-2"><Layout size={12} /> Room Settings</h3>
             <div className="space-y-6">
               <div className="space-y-2">
                 <div className="flex justify-between"><label className="text-[9px] font-bold uppercase">Width</label><span className="text-[9px] font-mono">{roomWidth}m</span></div>
@@ -300,36 +303,37 @@ export default function ProductDetailPage() {
                 <label className="text-[9px] font-bold uppercase mb-3 block">Floor Material</label>
                 <div className="grid grid-cols-4 gap-2">
                   {floorMaterials.map((m: { name: string; hex: string }) => (
-                    <button key={m.name} onClick={() => setFloorColor(m.hex)} className={cn("aspect-square rounded-md border-2", floorColor === m.hex ? "border-black" : "border-transparent")} style={{background: m.hex}} />
+                    <button key={m.name} onClick={() => setFloorColor(m.hex)} className={cn("aspect-square rounded-md border-2", floorColor === m.hex ? "border-black" : "border-transparent")} style={{ background: m.hex }} />
                   ))}
                 </div>
               </div>
             </div>
           </div>
 
-            {/* Center: Mini 3D Viewport */}
-            <div className="flex-1 relative bg-[#f1f5f9]">
-            {/* small floating transform controls */}
+          {/* Center: Mini 3D Viewport */}
+          <div className="flex-1 relative bg-[#f1f5f9]">
+          {/* small floating transform controls */}
+
             {selectedItem && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-black text-white p-1 rounded-full flex gap-1 shadow-2xl">
-              <button
-                onClick={() => setTransformMode('translate')}
-                className={cn(
-                "px-3 py-1 text-[9px] font-bold rounded-full transition-all",
-                transformMode === 'translate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
-                )}
-              >
-                MOVE
-              </button>
-              <button
-                onClick={() => setTransformMode('rotate')}
-                className={cn(
-                "px-3 py-1 text-[9px] font-bold rounded-full transition-all",
-                transformMode === 'rotate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
-                )}
-              >
-                ROTATE
-              </button>
+                <button
+                  onClick={() => setTransformMode('translate')}
+                  className={cn(
+                    "px-3 py-1 text-[9px] font-bold rounded-full transition-all",
+                    transformMode === 'translate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
+                  )}
+                >
+                  MOVE
+                </button>
+                <button
+                  onClick={() => setTransformMode('rotate')}
+                  className={cn(
+                    "px-3 py-1 text-[9px] font-bold rounded-full transition-all",
+                    transformMode === 'rotate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
+                  )}
+                >
+                  ROTATE
+                </button>
               </div>
             )}
 
@@ -340,53 +344,53 @@ export default function ProductDetailPage() {
               onPointerMissed={() => setSelectedItem(null)}
             >
               <Suspense fallback={null}>
-              <ambientLight intensity={0.8} />
-              <directionalLight
-                position={[20, 30, 20]}
-                intensity={1.6}
-                castShadow
-                shadow-mapSize-width={1024}
-                shadow-mapSize-height={1024}
-              />
-              <Environment preset="city" />
-              <Grid infiniteGrid fadeDistance={400} sectionSize={1} sectionColor="#e2e8f0" cellColor="#ffffff" cellThickness={0.5} />
-
-              <group position={[0, wallHeight / 2, 0]}>
-                <mesh receiveShadow>
-                <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
-                <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.5} depthWrite={false} />
-                </mesh>
-                <mesh receiveShadow position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <planeGeometry args={[roomWidth, roomLength]} />
-                <meshStandardMaterial color={floorColor} roughness={0.8} />
-                </mesh>
-              </group>
-
-              {sceneItems.map((item) => (
-                <Furniture
-                  key={item.uniqueId}
-                  url={item.url}
-                  position={item.position}
-                  mode={transformMode}
-                  isSelected={selectedItem === item.uniqueId}
-                  onSelect={() => setSelectedItem(item.uniqueId)}
-                  setOrbitEnabled={setOrbitEnabled}
-                  floorY={floorY + 2} // raise object 1m above the floor
-                  onUpdatePosition={(newPos: any) => {
-                    setSceneItems(prev => prev.map(i => i.uniqueId === item.uniqueId ? { ...i, position: newPos } : i));
-                  }}
+                <ambientLight intensity={0.8} />
+                <directionalLight
+                  position={[20, 30, 20]}
+                  intensity={1.6}
+                  castShadow
+                  shadow-mapSize-width={1024}
+                  shadow-mapSize-height={1024}
                 />
-              ))}
+                <Environment preset="city" />
+                <Grid infiniteGrid fadeDistance={400} sectionSize={1} sectionColor="#e2e8f0" cellColor="#ffffff" cellThickness={0.5} />
+
+                <group position={[0, wallHeight / 2, 0]}>
+                  <mesh receiveShadow>
+                    <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
+                    <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.5} depthWrite={false} />
+                  </mesh>
+                  <mesh receiveShadow position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                    <planeGeometry args={[roomWidth, roomLength]} />
+                    <meshStandardMaterial color={floorColor} roughness={0.8} />
+                  </mesh>
+                </group>
+
+                {sceneItems.map((item) => (
+                  <Furniture
+                    key={item.uniqueId}
+                    url={item.url}
+                    position={item.position}
+                    mode={transformMode}
+                    isSelected={selectedItem === item.uniqueId}
+                    onSelect={() => setSelectedItem(item.uniqueId)}
+                    setOrbitEnabled={setOrbitEnabled}
+                    floorY={floorY + 2} // raise object 1m above the floor
+                    onUpdatePosition={(newPos: any) => {
+                      setSceneItems(prev => prev.map(i => i.uniqueId === item.uniqueId ? { ...i, position: newPos } : i));
+                    }}
+                  />
+                ))}
               </Suspense>
 
               <ContactShadows position={[0, floorY, 0]} opacity={0.4} scale={30} blur={2.5} />
               <OrbitControls makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={Infinity} maxPolarAngle={Math.PI / 2.1} dampingFactor={0.05} enableDamping />
             </Canvas>
-            </div>
+          </div>
 
           {/* Sidebar Right: Asset Browser & Selection (upgraded) */}
           <div className="w-full lg:w-72 border-l bg-white flex flex-col p-6 z-10 overflow-y-auto">
-            <h3 className="text-[10px] font-black uppercase text-gray-400 mb-6 flex items-center gap-2"><Plus size={12}/> Catalog Items</h3>
+            <h3 className="text-[10px] font-black uppercase text-gray-400 mb-6 flex items-center gap-2"><Plus size={12} /> Catalog Items</h3>
 
             <div className="space-y-4 mb-10">
               {ALL_PRODUCTS.map(item => (
@@ -398,31 +402,32 @@ export default function ProductDetailPage() {
                     <p className="text-[10px] font-bold truncate">{item.name}</p>
                     <p className="text-[9px] text-[#D4AF37] font-black">{item.price}</p>
                   </div>
-                  <Plus size={14} className="text-gray-300 group-hover:text-black"/>
+                  <Plus size={14} className="text-gray-300 group-hover:text-black" />
                 </div>
               ))}
             </div>
 
             {selectedItem && (
               <div className="mt-auto pt-6 border-t">
-                <h3 className="text-[10px] font-black uppercase text-gray-400 mb-4 flex items-center gap-2"><Palette size={12}/> Selection Properties</h3>
+                <h3 className="text-[10px] font-black uppercase text-gray-400 mb-4 flex items-center gap-2"><Palette size={12} /> Selection Properties</h3>
                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                   <p className="text-[10px] font-bold truncate">{sceneItems.find(i => i.uniqueId === selectedItem)?.name}</p>
                   <button
                     onClick={() => { setSceneItems(sceneItems.filter(i => i.uniqueId !== selectedItem)); setSelectedItem(null); }}
                     className="w-full mt-4 py-2.5 bg-red-50 text-red-500 text-[9px] font-black rounded-lg border border-red-100 flex items-center justify-center gap-2 hover:bg-red-500 hover:text-white transition-all"
                   >
-                    <Trash2 size={12}/> REMOVE ITEM
+                    <Trash2 size={12} /> REMOVE ITEM
                   </button>
                 </div>
               </div>
             )}
 
-            
-                  </div>
-                </div>
+
+          </div>
+        </div>
       </section>
-        {/* RELATED PRODUCTS */}
+
+      {/* RELATED PRODUCTS */}
       <section className="max-w-7xl mx-auto px-6 py-20 border-t border-gray-100">
         <div className="mb-12 text-center">
           <h2 className="text-2xl font-bold uppercase tracking-tight mb-2">Complete the Look</h2>

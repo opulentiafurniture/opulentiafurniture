@@ -13,7 +13,10 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [cartCount, setCartCount] = React.useState(0);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [showCartPopup, setShowCartPopup] = React.useState(false);
+  const [addedProductName, setAddedProductName] = React.useState("");
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const popupTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const updateCartCount = React.useCallback(() => {
     try {
@@ -54,6 +57,22 @@ const Navbar = () => {
       updateCartCount();
     };
 
+    const handleCartAdded = (event: Event) => {
+      const customEvent = event as CustomEvent<{ name?: string }>;
+      const rawName = customEvent.detail?.name || "ITEM";
+
+      setAddedProductName(String(rawName).toUpperCase());
+      setShowCartPopup(true);
+
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+      }
+
+      popupTimeoutRef.current = setTimeout(() => {
+        setShowCartPopup(false);
+      }, 2000);
+    };
+
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === "opulentia_cart") {
         updateCartCount();
@@ -62,12 +81,18 @@ const Navbar = () => {
 
     document.addEventListener("mousedown", handleClickOutside);
     window.addEventListener("cartUpdated", handleCartUpdated as EventListener);
+    window.addEventListener("cartAdded", handleCartAdded as EventListener);
     window.addEventListener("storage", handleStorageChange);
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("cartUpdated", handleCartUpdated as EventListener);
+      window.removeEventListener("cartAdded", handleCartAdded as EventListener);
       window.removeEventListener("storage", handleStorageChange);
+
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current);
+      }
     };
   }, [updateCartCount]);
 
@@ -152,7 +177,7 @@ const Navbar = () => {
           )}
         </div>
 
-        <div className="flex items-center gap-6 px-10">
+        <div className="relative flex items-center gap-6 px-10">
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -215,6 +240,15 @@ const Navbar = () => {
               </span>
             )}
           </button>
+
+          {showCartPopup && (
+            <div className="absolute top-14 right-0 bg-white text-[#0A192F] shadow-xl border border-gray-200 rounded-md px-4 py-3 min-w-[220px] z-[120]">
+              <p className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-bold mb-1">
+                ADDED TO CART
+              </p>
+              <p className="text-xs text-gray-700 line-clamp-1">{addedProductName}</p>
+            </div>
+          )}
         </div>
       </div>
 
