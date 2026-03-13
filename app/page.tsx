@@ -110,7 +110,8 @@ const ProductCard = ({ product }: { product: Product }) => (
                 }
   
                 localStorage.setItem(key, JSON.stringify(cart));
-                window.location.href = "/cart";
+                window.dispatchEvent(new Event("cartUpdated"));
+                
               } catch (err) {
                 console.error("Cart error:", err);
               }
@@ -227,7 +228,7 @@ export default function OpulentiaHome() {
               </div>
 
               <button 
-                onClick={() => router.push("/visualization")}
+                onClick={() => router.push("/Visualization")}
                 className="group flex items-center gap-4 bg-[#D4AF37] text-[#0A192F] px-8 py-4 text-xs font-black tracking-widest uppercase transition-all hover:bg-white active:scale-95 shadow-xl"
               >
                 Launch Visualization 

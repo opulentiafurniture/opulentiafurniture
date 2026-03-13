@@ -84,7 +84,8 @@ const ProductCard = ({ product }: { product: any }) => (
               }
 
               localStorage.setItem(key, JSON.stringify(cart));
-              window.location.href = "/cart";
+              window.dispatchEvent(new Event("cartUpdated"));
+              
             } catch (err) {
               console.error("Cart error:", err);
             }

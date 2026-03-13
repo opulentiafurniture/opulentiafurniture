@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, ShoppingCart, Search, LogOut, ChevronDown, Box } from "lucide-react";
+import { User, ShoppingCart, Search, LogOut, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -11,7 +11,27 @@ const Navbar = () => {
   const router = useRouter();
   const [user, setUser] = React.useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [cartCount, setCartCount] = React.useState(0);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  const updateCartCount = React.useCallback(() => {
+    try {
+      const raw = localStorage.getItem("opulentia_cart") || "[]";
+      const cart = JSON.parse(raw);
+
+      const totalCount = Array.isArray(cart)
+        ? cart.reduce((sum, item) => {
+            const qty = Number(item.quantity ?? item.qty ?? 1);
+            return sum + (Number.isFinite(qty) ? qty : 1);
+          }, 0)
+        : 0;
+
+      setCartCount(totalCount);
+    } catch (error) {
+      console.error("Failed to read cart count:", error);
+      setCartCount(0);
+    }
+  }, []);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -21,14 +41,34 @@ const Navbar = () => {
   }, []);
 
   React.useEffect(() => {
+    updateCartCount();
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     };
+
+    const handleCartUpdated = () => {
+      updateCartCount();
+    };
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "opulentia_cart") {
+        updateCartCount();
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    window.addEventListener("cartUpdated", handleCartUpdated as EventListener);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("cartUpdated", handleCartUpdated as EventListener);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [updateCartCount]);
 
   const handleSignOut = async () => {
     try {
@@ -55,12 +95,9 @@ const Navbar = () => {
 
   return (
     <nav className="w-full flex flex-col sticky top-0 z-[100] shadow-2xl">
-      {/* Top Gold Accent Line */}
       <div className="h-2 w-full bg-[#D4AF37] border-b border-black/20" />
 
-      {/* Primary Navigation Bar (Navy Blue) */}
       <div className="h-20 bg-[#0A192F] flex items-center">
-        {/* Logo Section */}
         <div
           className="h-full px-8 flex items-center justify-center border-r border-white/10 relative overflow-hidden group cursor-pointer"
           onClick={() => router.push("/")}
@@ -72,7 +109,6 @@ const Navbar = () => {
           />
         </div>
 
-        {/* Links Section */}
         <div className="flex-1 flex justify-center items-center gap-12">
           {navLinks.map((link) => (
             <a
@@ -86,7 +122,6 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* User Actions Section */}
         <div className="flex items-center gap-6 px-10">
           {user ? (
             <div className="relative" ref={dropdownRef}>
@@ -100,7 +135,10 @@ const Navbar = () => {
                 </span>
                 <ChevronDown
                   size={14}
-                  className={cn("transition-transform duration-300 hidden md:block", isDropdownOpen && "rotate-180")}
+                  className={cn(
+                    "transition-transform duration-300 hidden md:block",
+                    isDropdownOpen && "rotate-180"
+                  )}
                 />
               </button>
 
@@ -137,28 +175,27 @@ const Navbar = () => {
 
           <button
             onClick={() => router.push("/cart")}
-            className="text-white hover:text-[#D4AF37] transition-colors p-2 rounded-full hover:bg-white/5"
+            className="relative text-white hover:text-[#D4AF37] transition-colors p-2 rounded-full hover:bg-white/5"
             title="Cart"
           >
             <ShoppingCart size={22} strokeWidth={1.5} />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#D4AF37] text-[#0A192F] text-[10px] font-bold leading-none">
+                {cartCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Secondary Gold Divider */}
       <div className="h-1 w-full bg-[#7E650A]" />
 
-      
       <div className="bg-white/95 backdrop-blur-md px-8 py-3 flex flex-col lg:flex-row justify-between items-center gap-4 border-b border-black/10">
-        
-        {/* Left Side: Tagline */}
         <div className="text-[10px] uppercase tracking-[0.2em] text-gray-500 hidden lg:block font-medium">
           Discover our latest collections
         </div>
 
-        {/* Center/Right: Action Items */}
         <div className="flex flex-col lg:flex-row items-center gap-6 w-full lg:w-auto">
-          {/* Visualization Tool Button - MOVED TO SUB NAV */}
           <button
             onClick={() => router.push("/Visualization")}
             className="flex items-center gap-2 bg-[#D4AF37] text-white px-5 py-2 text-[10px] tracking-widest uppercase rounded-sm font-bold hover:bg-[#B8860B] transition-all shadow-sm active:scale-95"
@@ -166,7 +203,6 @@ const Navbar = () => {
             3D Visualization
           </button>
 
-          {/* Search Form */}
           <form
             method="get"
             action="/search"
