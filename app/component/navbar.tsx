@@ -85,12 +85,19 @@ const Navbar = () => {
     { name: "Living", href: "/living" },
     { name: "Bedroom", href: "/bedroom" },
     { name: "About", href: "/about" },
-    { name: "Contact", href: "/#Footer" },
+    { name: "Contact", href: "#Footer" },
   ];
 
   const getDisplayName = () => {
     if (!user) return "";
     return user.displayName || user.email?.split("@")[0] || "Account";
+  };
+
+  const handleContactScroll = () => {
+    const footer = document.getElementById("Footer");
+    if (footer) {
+      footer.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
@@ -110,16 +117,27 @@ const Navbar = () => {
         </div>
 
         <div className="flex-1 flex justify-center items-center gap-12">
-          {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="text-white text-[11px] tracking-[0.25em] uppercase font-light hover:text-[#D4AF37] transition-all duration-300 relative group"
-            >
-              {link.name}
-              <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#D4AF37] transition-all duration-500 group-hover:w-full" />
-            </a>
-          ))}
+          {navLinks.map((link) =>
+            link.name === "Contact" ? (
+              <button
+                key={link.name}
+                type="button"
+                onClick={handleContactScroll}
+                className="text-white text-[11px] tracking-[0.25em] uppercase font-light hover:text-[#D4AF37] transition-all duration-300 relative group"
+              >
+                {link.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#D4AF37] transition-all duration-500 group-hover:w-full" />
+              </button>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                className="text-white text-[11px] tracking-[0.25em] uppercase font-light hover:text-[#D4AF37] transition-all duration-300 relative group"
+              >
+                {link.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-[#D4AF37] transition-all duration-500 group-hover:w-full" />
+              </a>
+            ))}
         </div>
 
         <div className="flex items-center gap-6 px-10">

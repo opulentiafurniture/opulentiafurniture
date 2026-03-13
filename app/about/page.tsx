@@ -198,7 +198,7 @@ export default function AboutUsPage() {
               <p className="text-sm leading-8 text-gray-600 mb-8">
                 Whether you are redesigning a single room or furnishing an entire home, Opulentia offers collections that are elegant, cohesive, and crafted to leave a lasting impression.
               </p>
-              <a href="/contact">
+              <a href="#Footer">
                 <Button className="bg-[#0A192F] text-white hover:bg-[#D4AF37] hover:text-[#0A192F]">
                   Contact Us
                 </Button>
