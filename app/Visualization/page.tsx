@@ -92,12 +92,12 @@ const VisualizationPage = () => {
 
   
   const roomLayouts = [
-    { id: 'square', name: 'Square', icon: 'M4 4h16v16H4z', w: 10, l: 10 },
-    { id: 'rectangle', name: 'Rectangle', icon: 'M2 6h20v12H2z', w: 14, l: 8 },
-    { id: 'narrow', name: 'Narrow', icon: 'M6 2h12v20H6z', w: 6, l: 14 },
-    { id: 'studio', name: 'Studio', icon: 'M2 2h20v20H2z', w: 16, l: 16 },
-    { id: 'l-shape', name: 'L-Shape', icon: 'M4 4h8v8h8v8H4z', w: 12, l: 12 },
-    { id: 't-shape', name: 'T-Shape', icon: 'M2 4h20v6h-6v10H8V10H2z', w: 14, l: 14 },
+    { id: 'square', name: 'Square', icon: 'M4 4h16v16H4z', w: 500, l: 500 },
+    { id: 'rectangle', name: 'Rectangle', icon: 'M2 6h20v12H2z', w: 1000, l: 800 },
+    { id: 'narrow', name: 'Narrow', icon: 'M6 2h12v20H6z', w: 600, l: 1400 },
+    { id: 'studio', name: 'Studio', icon: 'M2 2h20v20H2z', w: 1600, l: 1600 },
+    { id: 'l-shape', name: 'L-Shape', icon: 'M4 4h8v8h8v8H4z', w: 1200, l: 1200 },
+    { id: 't-shape', name: 'T-Shape', icon: 'M2 4h20v6h-6v10H8V10H2z', w: 1400, l: 1400 },
   ];
 
   const floorMaterials = [
@@ -117,7 +117,18 @@ const VisualizationPage = () => {
       { id: 'lv1', name: 'Classic Oak Chair', price: 'LKR 45,000', url: '/models/Chair.glb' },
       { id: 'lv2', name: 'Velvet Sofa', price: 'LKR 245,000', url: '/models/Chair.glb' },
     ],
-    dining: [], bedroom: [], decoration: []
+    dining: [
+      { id: 'd1', name: 'Marble Dining Table', price: 'LKR 120,000', url: '/models/DiningTable.glb' },
+      { id: 'd2', name: 'Dining Chair', price: 'LKR 80,000', url: '/models/Chair.glb' },
+    ], 
+    bedroom: [
+      { id: 'b1', name: 'King Size Bed', price: 'LKR 200,000', url: '/models/Chair.glb' },
+      { id: 'b2', name: 'Wardrobe', price: 'LKR 150,000', url: '/models/Chair.glb' },
+    ],
+    decoration: [
+      { id: 'dec1', name: 'Floor Lamp', price: 'LKR 30,000', url: '/models/Chair.glb' },
+      { id: 'dec2', name: 'Wall Art', price: 'LKR 25,000', url: '/models/Chair.glb' },
+    ]
   };
 
   useEffect(() => { setMounted(true); }, []);
@@ -249,7 +260,7 @@ const VisualizationPage = () => {
             ref={canvasRef}
             gl={{ preserveDrawingBuffer: true, antialias: true }} 
             shadows 
-            camera={{ position: [20, 20, 20], fov: 45, far: 100000 }} 
+            camera={{ position: [500, 500, 500], fov: 45, far: 100000 }} 
             onPointerMissed={() => setSelectedItem(null)}
           >
             <Suspense fallback={null}>
@@ -262,7 +273,7 @@ const VisualizationPage = () => {
               <group position={[0, wallHeight / 2, 0]}>
                 <mesh receiveShadow>
                     <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
-                    <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.1} depthWrite={false} />
+                    <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.5} depthWrite={false} />
                 </mesh>
                 <mesh receiveShadow position={[0, -wallHeight / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                     <planeGeometry args={[roomWidth, roomLength]} />

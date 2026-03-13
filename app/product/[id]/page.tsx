@@ -12,16 +12,66 @@ import { cn } from "@/lib/utils";
 
 // --- MOCK DATA & CONFIG ---
 const ALL_PRODUCTS = [
-  { id: 1, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/SheenChair/glTF-Binary/SheenChair.glb", desc: "Experience the pinnacle of luxury with our Royal Velvet Sofa." },
-  { id: 2, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Chairs", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb", desc: "Sleek lines and robust construction define this modern masterpiece." },
-];
+   { id: 1, name: "Royal King Bed", price: "Rs 129,990", oldPrice: "Rs 145,000", img: "/bedroom-bed.jpeg", rating: 5, category: "Beds", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "A luxurious king bed with ornate headboard and rich upholstery." },
+    { id: 2, name: "Luxury Wardrobe Unit", price: "Rs 159,900", oldPrice: "Rs 175,000", img: "/bedroom-wardrobe.jpeg", rating: 5, category: "Wardrobes", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Spacious wardrobe unit with elegant finishes and internal shelving." },
+    { id: 3, name: "Elegant Dressing Table", price: "Rs 74,990", oldPrice: "Rs 84,000", img: "/bedroom-dresser.jpeg", rating: 4, category: "Dressers", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "A compact dressing table with a sleek mirror and storage drawers." },
+    { id: 4, name: "Grand Dining Table", price: "Rs 119,990", oldPrice: "Rs 134,990", img: "/dining-table.jpg", rating: 5, category: "Tables", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Large dining table crafted from solid wood for timeless gatherings." },
+    { id: 5, name: "Oak Dining Chair", price: "Rs 68,500", oldPrice: "Rs 77,000", img: "/dining-chair.jpeg", rating: 4, category: "Chairs", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Comfortable oak dining chair with a classic silhouette." },
+    { id: 6, name: "Luxury Pantry Cupboard", price: "Rs 84,900", oldPrice: "Rs 95,000", img: "/dining-cupboard.jpeg", rating: 5, category: "Storage", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Handsome pantry cupboard with ample storage and soft-close doors." },
+    { id: 7, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Sumptuous velvet sofa with deep seating for luxurious comfort." },
+    { id: 8, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Shelf", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Minimalist bookshelf perfect for styling your living space." },
+    { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables", modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb", desc: "Elegant marble-top coffee table with sturdy metal base." }
+  ];
 
 const relatedProducts = ALL_PRODUCTS;
 
-const FLOOR_MATERIALS = [
+const floorMaterials = [
   { name: 'Light Oak', hex: '#d4b895' }, { name: 'Dark Walnut', hex: '#4a3018' },
-  { name: 'Grey Ash', hex: '#9ca3af' }, { name: 'White Marble', hex: '#f8fafc' },
+  { name: 'Grey Ash', hex: '#9ca3af' }, { name: 'Cherry Wood', hex: '#7c2d12' },
+  { name: 'White Marble', hex: '#f8fafc' }, { name: 'Dark Slate', hex: '#334155' },
+  { name: 'Terracotta', hex: '#c53030' }, { name: 'Cream Carpet', hex: '#fef3c7' },
 ];
+
+const VisualizationPage = () => {
+  const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState('furnish'); 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [orbitEnabled, setOrbitEnabled] = useState(true);
+  const [sceneItems, setSceneItems] = useState<any[]>([]); 
+  const [activeCategory, setActiveCategory] = useState('living');
+
+  const [roomShape, setRoomShape] = useState('rectangle');
+  const roomLayouts = [
+    { id: 'square', name: 'Square', icon: 'M4 4h16v16H4z', w: 500, l: 500 },
+    { id: 'rectangle', name: 'Rectangle', icon: 'M2 6h20v12H2z', w: 1000, l: 800 },
+    { id: 'narrow', name: 'Narrow', icon: 'M6 2h12v20H6z', w: 600, l: 1400 },
+    { id: 'studio', name: 'Studio', icon: 'M2 2h20v20H2z', w: 1600, l: 1600 },
+    { id: 'l-shape', name: 'L-Shape', icon: 'M4 4h8v8h8v8H4z', w: 1200, l: 1200 },
+    { id: 't-shape', name: 'T-Shape', icon: 'M2 4h20v6h-6v10H8V10H2z', w: 1400, l: 1400 },
+  ];
+
+  // floorMaterials moved to module scope above so it can be shared across components
+
+  const catalogCategories = [
+    { id: 'living', label: 'Living Room' }, { id: 'dining', label: 'Dining Room' },
+    { id: 'bedroom', label: 'Bedroom' }, { id: 'decoration', label: 'Decoration' }
+  ];
+
+const furnitureCatalog: Record<string, any[]> = {
+    living: [
+      { id: 'lv1', name: 'Classic Oak Chair', price: 'LKR 45,000', url: '/models/Chair.glb' },
+      { id: 'lv2', name: 'Velvet Sofa', price: 'LKR 245,000', url: '/models/Chair.glb' },
+    ],
+    dining: [], bedroom: [], decoration: []
+  };
+
+  // End the VisualizationPage component (it was left open) so the following
+  // component declarations remain at the module top level.
+  return null;
+};
 
 // --- 3D FURNITURE COMPONENT ---
 function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY }: any) {
@@ -137,18 +187,92 @@ export default function ProductDetailPage() {
             <p className="text-gray-500 text-sm leading-relaxed border-t border-gray-100 pt-6">{product.desc}</p>
           </div>
 
-          <div className="flex gap-4 pt-6 border-t border-gray-100">
-            <button className="flex-1 bg-[#0A192F] text-white py-5 rounded-sm text-xs font-bold uppercase hover:bg-[#D4AF37] transition-all">Add to Cart</button>
-            <button className="w-16 border border-gray-200 flex items-center justify-center hover:bg-gray-50"><Heart size={20} /></button>
-          </div>
+            <div className="flex gap-4 pt-6 border-t border-gray-100">
+            <button
+              className="flex items-center gap-3 px-4 py-2 bg-[#D4AF371] text-[#071226] rounded-lg shadow-lg hover:shadow-2xl transform hover:-translate-y-0.5 transition-all duration-150"
+              title="Add to cart"
+              onClick={(e) => {
+              e.stopPropagation();
+              const key = "opulentia_cart";
+              try {
+                const raw = localStorage.getItem(key) || "[]";
+                const cart: any[] = JSON.parse(raw);
+                const existing = cart.find((item) => item.id === product.id);
+
+                if (existing) {
+                existing.qty = (existing.qty || 1) + 1;
+                } else {
+                cart.push({
+                  id: product.id,
+                  qty: 1,
+                  name: product.name,
+                  price: product.price,
+                  img: product.img,
+                });
+                }
+
+                localStorage.setItem(key, JSON.stringify(cart));
+                // small visual feedback: dispatch a global event other parts of app can use
+                window.dispatchEvent(new Event("cartUpdated"));
+              } catch (err) {
+                console.error("Cart error:", err);
+              }
+              }}
+              aria-label={`Add ${product?.name} to cart`}
+            >
+              <div className="flex items-center justify-center w-9 h-9 rounded-md bg-white/30 backdrop-blur-sm">
+              <ShoppingCart size={18} className="text-[#071226]" />
+              </div>
+              <div className="flex flex-col text-left leading-tight">
+              <span className="text-sm font-black uppercase tracking-wide">Add to Cart</span>
+              <span className="text-xs text-[#071226]/80 font-mono">{product.price}</span>
+              </div>
+            </button>
+            
+            <button
+              className="w-16 border border-gray-200 flex items-center justify-center hover:bg-gray-50"
+              title="Add to wishlist"
+              onClick={(e) => {
+              e.stopPropagation();
+              const key = "opulentia_wishlist";
+              try {
+                const raw = localStorage.getItem(key) || "[]";
+                const wishlist: any[] = JSON.parse(raw);
+                const exists = wishlist.find((item) => item.id === product.id);
+
+                if (!exists) {
+                const newItem = {
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  img: product.img,
+                  addedAt: Date.now(),
+                };
+                wishlist.push(newItem);
+                localStorage.setItem(key, JSON.stringify(wishlist));
+                // notify profile page (or any listener) to re-render its wishlist
+                window.dispatchEvent(new CustomEvent("wishlistUpdated", { detail: newItem }));
+                } else {
+                // already in wishlist — optional: you can toggle remove here if desired
+                console.info("Item already in wishlist:", product.id);
+                }
+              } catch (err) {
+                console.error("Wishlist error:", err);
+              }
+              }}
+              aria-label={`Add ${product?.name} to wishlist`}
+            >
+              <Heart size={20} />
+            </button>
+            </div>
         </div>
       </main>
       
       {/* --- OPULENTIA INTEGRATED STUDIO --- */}
       <section className="max-w-7xl mx-auto px-6 py-20 bg-gray-50/50">
         <div className="mb-10 flex justify-between items-end">
-          <h2 className="text-2xl font-bold uppercase tracking-tight">Opulentia Studio <span className="text-[10px] bg-black text-white px-2 py-0.5 ml-2 rounded-full">v2.0</span></h2>
-          <button onClick={() => router.push('/visualization')} className="text-[10px] font-bold uppercase border-b border-[#D4AF37] hover:text-[#D4AF37]">Enter Pro Designer</button>
+          <h2 className="text-2xl font-bold uppercase tracking-tight">Opulentia Visualization <span className="text-[10px] bg-black text-white px-2 py-0.5 ml-2 rounded-full">v2.0</span></h2>
+          <button onClick={() => router.push('/Visualization')} className="text-[10px] font-bold uppercase border-b border-[#D4AF37] hover:text-[#D4AF37]">Enter Full Scale Designer</button>
         </div>
 
         <div className="flex flex-col lg:flex-row h-[750px] bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-2xl relative">
@@ -175,7 +299,7 @@ export default function ProductDetailPage() {
               <div className="pt-4 border-t">
                 <label className="text-[9px] font-bold uppercase mb-3 block">Floor Material</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {FLOOR_MATERIALS.map(m => (
+                  {floorMaterials.map((m: { name: string; hex: string }) => (
                     <button key={m.name} onClick={() => setFloorColor(m.hex)} className={cn("aspect-square rounded-md border-2", floorColor === m.hex ? "border-black" : "border-transparent")} style={{background: m.hex}} />
                   ))}
                 </div>
@@ -183,81 +307,82 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Center: 3D Viewport (upgraded) */}
-          <div className="flex-1 relative bg-[#f1f5f9]">
-            {/* Floating transform controls */}
+            {/* Center: Mini 3D Viewport */}
+            <div className="flex-1 relative bg-[#f1f5f9]">
+            {/* small floating transform controls */}
             {selectedItem && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 bg-black text-white p-1 rounded-full flex gap-1 shadow-2xl">
-                <button
-                  onClick={() => setTransformMode('translate')}
-                  className={cn(
-                    "px-4 py-1.5 text-[9px] font-bold rounded-full transition-all",
-                    transformMode === 'translate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
-                  )}
-                >
-                  MOVE
-                </button>
-                <button
-                  onClick={() => setTransformMode('rotate')}
-                  className={cn(
-                    "px-4 py-1.5 text-[9px] font-bold rounded-full transition-all",
-                    transformMode === 'rotate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
-                  )}
-                >
-                  ROTATE
-                </button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-black text-white p-1 rounded-full flex gap-1 shadow-2xl">
+              <button
+                onClick={() => setTransformMode('translate')}
+                className={cn(
+                "px-3 py-1 text-[9px] font-bold rounded-full transition-all",
+                transformMode === 'translate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
+                )}
+              >
+                MOVE
+              </button>
+              <button
+                onClick={() => setTransformMode('rotate')}
+                className={cn(
+                "px-3 py-1 text-[9px] font-bold rounded-full transition-all",
+                transformMode === 'rotate' ? "bg-white text-black" : "hover:text-[#D4AF37]"
+                )}
+              >
+                ROTATE
+              </button>
               </div>
             )}
 
             <Canvas
+              gl={{ preserveDrawingBuffer: true, antialias: true }}
               shadows
-              camera={{ position: [10, 10, 10], fov: 40 }}
-              gl={{ preserveDrawingBuffer: true }}
+              camera={{ position: [25, 20, 25], fov: 45, far: 1000 }}
               onPointerMissed={() => setSelectedItem(null)}
             >
               <Suspense fallback={null}>
-                <ambientLight intensity={0.8} />
-                <directionalLight position={[20, 30, 20]} intensity={1.6} castShadow />
-                <Environment preset="city" />
-                <Grid infiniteGrid fadeDistance={400} sectionSize={1} sectionColor="#e2e8f0" cellColor="#ffffff" cellThickness={0.5} />
+              <ambientLight intensity={0.8} />
+              <directionalLight
+                position={[20, 30, 20]}
+                intensity={1.6}
+                castShadow
+                shadow-mapSize-width={1024}
+                shadow-mapSize-height={1024}
+              />
+              <Environment preset="city" />
+              <Grid infiniteGrid fadeDistance={400} sectionSize={1} sectionColor="#e2e8f0" cellColor="#ffffff" cellThickness={0.5} />
 
-                <group position={[0, wallHeight / 2, 0]}>
-                  <mesh receiveShadow>
-                    <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
-                    <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.12} depthWrite={false} />
-                  </mesh>
-                  <mesh receiveShadow position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                    <planeGeometry args={[roomWidth, roomLength]} />
-                    <meshStandardMaterial color={floorColor} roughness={0.8} />
-                  </mesh>
-                </group>
+              <group position={[0, wallHeight / 2, 0]}>
+                <mesh receiveShadow>
+                <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
+                <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.5} depthWrite={false} />
+                </mesh>
+                <mesh receiveShadow position={[0, floorY, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[roomWidth, roomLength]} />
+                <meshStandardMaterial color={floorColor} roughness={0.8} />
+                </mesh>
+              </group>
 
-                {sceneItems.map((item) => (
-                  <Furniture
-                    key={item.uniqueId}
-                    url={item.url}
-                    // always render furniture slightly above the floor to avoid z-fighting / sinking
-                    position={[item.position[0], item.position[1], item.position[2]]}
-                    mode={transformMode}
-                    isSelected={selectedItem === item.uniqueId}
-                    onSelect={() => setSelectedItem(item.uniqueId)}
-                    setOrbitEnabled={setOrbitEnabled}
-                    // pass a small offset so the object's bottom stays above the floor
-                    floorY={floorY + 0.01}
-                    onUpdatePosition={(newPos: any) => {
-                      // make sure Y is always fixed to the "above floor" value
-                      const fixedY = floorY + 0.01;
-                      setSceneItems(prev => prev.map(i => i.uniqueId === item.uniqueId ? { ...i, position: [newPos[0], fixedY, newPos[2]] } : i));
-                    }}
-                  />
-                ))}
+              {sceneItems.map((item) => (
+                <Furniture
+                  key={item.uniqueId}
+                  url={item.url}
+                  position={item.position}
+                  mode={transformMode}
+                  isSelected={selectedItem === item.uniqueId}
+                  onSelect={() => setSelectedItem(item.uniqueId)}
+                  setOrbitEnabled={setOrbitEnabled}
+                  floorY={floorY + 2} // raise object 1m above the floor
+                  onUpdatePosition={(newPos: any) => {
+                    setSceneItems(prev => prev.map(i => i.uniqueId === item.uniqueId ? { ...i, position: newPos } : i));
+                  }}
+                />
+              ))}
               </Suspense>
 
-              {/* Keep shadows at true floor level but objects are offset slightly above */}
               <ContactShadows position={[0, floorY, 0]} opacity={0.4} scale={30} blur={2.5} />
-              <OrbitControls makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={30} maxPolarAngle={Math.PI / 2.1} />
+              <OrbitControls makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={Infinity} maxPolarAngle={Math.PI / 2.1} dampingFactor={0.05} enableDamping />
             </Canvas>
-          </div>
+            </div>
 
           {/* Sidebar Right: Asset Browser & Selection (upgraded) */}
           <div className="w-full lg:w-72 border-l bg-white flex flex-col p-6 z-10 overflow-y-auto">
