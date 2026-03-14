@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Environment, useGLTF, ContactShadows, TransformControls } from '@react-three/drei';
+import { OrbitControls, Environment, Html, useGLTF, ContactShadows, TransformControls } from '@react-three/drei';
 import { Object3D, Box3, Vector3, CanvasTexture, RepeatWrapping, SRGBColorSpace, Shape, Vector2, DoubleSide, MathUtils, MeshStandardMaterial } from 'three';
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
@@ -233,11 +233,21 @@ function ModelThumbnail({ url }: { url: string }) {
   }, [scene]);
 
   return (
-    <Canvas className="w-16 h-16" gl={{ alpha: true }} camera={{ position: [2, 2, 2], fov: 45 }}>
-      <ambientLight intensity={0.8} />
-      <directionalLight position={[5, 5, 5]} intensity={0.6} />
-      <primitive object={scene} ref={ref} />
-    </Canvas>
+    <div className="w-16 h-16">
+      <Canvas className="w-full h-full" gl={{ alpha: true }} camera={{ position: [2, 2, 2], fov: 45 }}>
+        <ambientLight intensity={0.8} />
+        <directionalLight position={[5, 5, 5]} intensity={0.6} />
+        <primitive object={scene} ref={ref} />
+      </Canvas>
+    </div>
+  );
+}
+
+function LoadingLogo({ className }: { className?: string }) {
+  return (
+    <div className={`loading-logo ${className || ''}`}>
+      <img src="/logo-no-bg.png" alt="Loading" className="w-12 h-12 object-contain" />
+    </div>
   );
 }
 
@@ -352,6 +362,7 @@ const VisualizationPage = () => {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isCanvasLoading, setIsCanvasLoading] = useState(true);
   const [cameraSide, setCameraSide] = useState<CameraSide>('south');
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'build' | 'furnish' | 'saved'>('furnish'); 
@@ -697,17 +708,17 @@ const VisualizationPage = () => {
                   <div className="space-y-5">
                     <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dimensions (Meters)</h3>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Width</span><input type="number" value={roomWidth} onChange={(e) => setRoomWidth(Math.max(1, Number(e.target.value)))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
-                        <input type="range" min="1" max="1000" value={roomWidth} onChange={(e) => setRoomWidth(Number(e.target.value))} className="w-full accent-black h-1" />
+                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Width</span><input type="number" value={roomWidth} onChange={(e) => setRoomWidth(Math.min(50, Math.max(1, Number(e.target.value))))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
+                        <input type="range" min="1" max="50" value={roomWidth} onChange={(e) => setRoomWidth(Math.min(50, Math.max(1, Number(e.target.value))))} className="w-full accent-black h-1" />
                     </div>
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Length</span><input type="number" value={roomLength} onChange={(e) => setRoomLength(Math.max(1, Number(e.target.value)))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
-                        <input type="range" min="1" max="1000" value={roomLength} onChange={(e) => setRoomLength(Number(e.target.value))} className="w-full accent-black h-1" />
+                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Length</span><input type="number" value={roomLength} onChange={(e) => setRoomLength(Math.min(50, Math.max(1, Number(e.target.value))))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
+                        <input type="range" min="1" max="50" value={roomLength} onChange={(e) => setRoomLength(Math.min(50, Math.max(1, Number(e.target.value))))} className="w-full accent-black h-1" />
                     </div>
                     {/* FIXED: Dynamic Wall Height Input */}
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-sm">
-                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Wall Height</span><input type="number" value={wallHeight} onChange={(e) => setWallHeight(Math.max(1, Number(e.target.value)))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
-                        <input type="range" min="1" max="100" value={wallHeight} onChange={(e) => setWallHeight(Number(e.target.value))} className="w-full accent-black h-1" />
+                        <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-gray-600 uppercase">Wall Height</span><input type="number" value={wallHeight} onChange={(e) => setWallHeight(Math.min(50, Math.max(1, Number(e.target.value))))} className="w-20 p-1 border rounded text-right font-black text-xs outline-none focus:ring-1 ring-black" /></div>
+                        <input type="range" min="1" max="50" value={wallHeight} onChange={(e) => setWallHeight(Math.min(50, Math.max(1, Number(e.target.value))))} className="w-full accent-black h-1" />
                     </div>
                   </div>
 
@@ -752,7 +763,7 @@ const VisualizationPage = () => {
                   <div key={item.id} onClick={() => handleAddItemToScene(item)} className="group bg-white border border-gray-100 rounded-2xl p-4 hover:border-black cursor-pointer shadow-sm flex justify-between items-center active:scale-95">
                     <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50">
-                        <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-xs text-gray-300">...</div>}>
+                        <Suspense fallback={<LoadingLogo className="w-full h-full" />}>
                           <ModelThumbnail url={item.url} />
                         </Suspense>
                       </div>
@@ -845,7 +856,13 @@ const VisualizationPage = () => {
             shadows 
             camera={{ position: [10, 10, 10], fov: 45, far: 2000 }} 
             onPointerMissed={() => setSelectedItem(null)}
+            onCreated={() => setIsCanvasLoading(false)}
           >
+            {isCanvasLoading && (
+              <Html style={{ position: 'absolute', bottom: 16, right: 16, pointerEvents: 'none' }}>
+                <LoadingLogo />
+              </Html>
+            )}
             <Suspense fallback={null}>
               <SceneCamera roomWidth={roomWidth} roomLength={roomLength} wallHeight={wallHeight} orbitRef={orbitRef} />
               <CameraSideTracker onChange={setCameraSide} />

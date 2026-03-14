@@ -35,3 +35,42 @@ body {
   width: 0 !important;
   height: 0 !important;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.loading-logo {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-logo img {
+  object-fit: contain;
+}
+
+.loading-logo::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 160%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: shine 1.2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  to { transform: translateX(120%); }
+}
