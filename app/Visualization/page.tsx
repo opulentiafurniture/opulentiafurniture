@@ -147,6 +147,9 @@ function RoomWalls({ roomWidth, roomLength, wallHeight, wallColor, hiddenSide }:
 }
 
 function createWoodTexture() {
+  // Guard against server-side rendering (no document available)
+  if (typeof document === 'undefined') return null;
+
   const canvas = document.createElement('canvas');
   const size = 512;
   canvas.width = size;
@@ -210,6 +213,32 @@ function createWoodTexture() {
   texture.colorSpace = SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
+}
+
+function ModelThumbnail({ url }: { url: string }) {
+  const { scene } = useGLTF(url);
+  const ref = useRef<Object3D>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const box = new Box3().setFromObject(ref.current);
+    const size = new Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z, 1);
+    const scale = 1.2 / maxDim;
+    ref.current.scale.setScalar(scale);
+    const center = new Vector3();
+    box.getCenter(center);
+    ref.current.position.sub(center);
+  }, [scene]);
+
+  return (
+    <Canvas className="w-16 h-16" gl={{ alpha: true }} camera={{ position: [2, 2, 2], fov: 45 }}>
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[5, 5, 5]} intensity={0.6} />
+      <primitive object={scene} ref={ref} />
+    </Canvas>
+  );
 }
 
 function buildShape(points: Array<{ x: number; z: number }>) {
@@ -337,6 +366,7 @@ const VisualizationPage = () => {
   const [orbitEnabled, setOrbitEnabled] = useState(true);
   const [sceneItems, setSceneItems] = useState<any[]>([]); 
   const [activeCategory, setActiveCategory] = useState('living');
+  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
   const orbitRef = useRef<any>(null);
 
   const [roomShape, setRoomShape] = useState('rectangle');
@@ -433,8 +463,10 @@ const VisualizationPage = () => {
   ];
 
   const catalogCategories = [
-    { id: 'living', label: 'Living Room' }, { id: 'dining', label: 'Dining Room' },
-    { id: 'bedroom', label: 'Bedroom' }, { id: 'decoration', label: 'Decoration' }
+    { id: 'living', label: 'Living Room' },
+    { id: 'dining', label: 'Dining Room' },
+    { id: 'bedroom', label: 'Bedroom' },
+    { id: 'decoration', label: 'Decoration' },
   ];
 
   const furnitureCatalog: Record<string, any[]> = {
@@ -695,15 +727,37 @@ const VisualizationPage = () => {
             )}
             {activeTab === 'furnish' && (
               <div className="space-y-4">
-                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                  {catalogCategories.map(cat => (
-                    <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all ${activeCategory === cat.id ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-400'}`}>{cat.label}</button>
-                  ))}
-                  <button onClick={loadMyDesigns} className="px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all bg-white text-gray-400">{loadingDesigns ? 'Loading...' : 'My Designs'}</button>
+                <div className="relative">
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {catalogCategories.map(cat => (
+                      <button
+                        id={`cat-${cat.id}`}
+                        key={cat.id}
+                        onClick={() => {
+                          setActiveCategory(cat.id);
+                          const el = document.getElementById(`cat-${cat.id}`);
+                          el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                        }}
+                        className={`px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all ${activeCategory === cat.id ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-400'}`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                    <button onClick={loadMyDesigns} className="px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all bg-white text-gray-400">{loadingDesigns ? 'Loading...' : 'My Designs'}</button>
+                  </div>
+                  <div className="pointer-events-none absolute left-0 top-0 h-full w-10 bg-gradient-to-r from-white/95 to-transparent" />
+                  <div className="pointer-events-none absolute right-0 top-0 h-full w-10 bg-gradient-to-l from-white/95 to-transparent" />
                 </div>
                 {furnitureCatalog[activeCategory]?.map((item) => (
                   <div key={item.id} onClick={() => handleAddItemToScene(item)} className="group bg-white border border-gray-100 rounded-2xl p-4 hover:border-black cursor-pointer shadow-sm flex justify-between items-center active:scale-95">
-                    <span className="text-sm font-bold text-gray-700">{item.name}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50">
+                        <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-xs text-gray-300">...</div>}>
+                          <ModelThumbnail url={item.url} />
+                        </Suspense>
+                      </div>
+                      <span className="text-sm font-bold text-gray-700">{item.name}</span>
+                    </div>
                     <span className="text-[10px] font-black text-gray-200 group-hover:text-black transition-colors">+ ADD</span>
                   </div>
                 ))}
@@ -725,16 +779,46 @@ const VisualizationPage = () => {
           </div>
         </div>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT PANEL: Scene items */}
         <div className="absolute top-0 right-0 w-72 h-full bg-white/95 border-l border-gray-200 z-10 p-6 flex flex-col shadow-2xl">
-          <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-6">Properties</h2>
-          {selectedItem ? (
-             <div className="space-y-4">
-                <button onClick={() => {setSceneItems(sceneItems.filter(i => i.uniqueId !== selectedItem)); setSelectedItem(null);}} className="w-full py-3 bg-red-50 text-red-500 text-[10px] font-black rounded-xl border border-red-100 hover:bg-red-500 hover:text-white transition-all shadow-sm">DELETE ITEM</button>
-             </div>
-          ) : <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl text-gray-300 text-[10px] font-bold">CLICK ITEM</div>}
-          
-          <button onClick={() => setSceneItems([])} className="mt-auto py-3 bg-white text-gray-400 text-[10px] font-bold rounded-xl border border-gray-200 hover:border-red-200 transition-all uppercase tracking-tighter">Clear Workspace</button>
+          <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-6">Scene Items</h2>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {sceneItems.length === 0 ? (
+              <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl text-gray-300 text-[10px] font-bold">No furniture yet</div>
+            ) : (
+              sceneItems.map((item) => (
+                <div
+                  key={item.uniqueId}
+                  onClick={() => setSelectedItem(item.uniqueId)}
+                  className={`flex items-center justify-between gap-3 p-3 rounded-xl border transition-all cursor-pointer ${selectedItem === item.uniqueId ? 'border-black bg-black/5' : 'border-gray-100 hover:border-gray-300'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
+                      <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-xs text-gray-300">...</div>}>
+                        <ModelThumbnail url={item.url} />
+                      </Suspense>
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-700">{item.name}</div>
+                      <div className="text-[10px] text-gray-400">{item.price || ''}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSceneItems(sceneItems.filter(i => i.uniqueId !== item.uniqueId));
+                      if (selectedItem === item.uniqueId) setSelectedItem(null);
+                    }}
+                    className="text-[10px] font-black px-2 py-1 rounded-lg border border-red-100 text-red-500 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <button onClick={() => { setSceneItems([]); setSelectedItem(null); }} className="mt-4 py-3 bg-white text-gray-400 text-[10px] font-bold rounded-xl border border-gray-200 hover:border-red-200 transition-all uppercase tracking-tighter">Clear Workspace</button>
         </div>
 
         {/* FLOATING TOOLS */}
