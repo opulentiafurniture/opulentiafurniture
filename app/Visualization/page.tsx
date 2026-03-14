@@ -1,11 +1,15 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Environment, useGLTF, ContactShadows, TransformControls } from '@react-three/drei';
-import { Object3D, Box3, Vector3 } from 'three';
+import React, { Suspense, useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
+import { OrbitControls, Environment, useGLTF, ContactShadows, TransformControls } from '@react-three/drei';
+import { Object3D, Box3, Vector3, CanvasTexture, RepeatWrapping, SRGBColorSpace, Shape, Vector2, DoubleSide, MathUtils, MeshStandardMaterial } from 'three';
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
+import { auth, db } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 /** * TYPES */
 interface FurnitureProps {
@@ -16,21 +20,255 @@ interface FurnitureProps {
   onSelect: () => void;
   onUpdatePosition: (newPos: [number, number, number]) => void;
   setOrbitEnabled: (enabled: boolean) => void;
-  floorY: number; 
+  floorY: number;
+  roomWidth: number;
+  roomLength: number;
+}
+
+function SceneCamera({ roomWidth, roomLength, wallHeight, orbitRef }: { roomWidth: number; roomLength: number; wallHeight: number; orbitRef: React.RefObject<any> }) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const maxDim = Math.max(roomWidth, roomLength, 1);
+    const distance = maxDim * 0.9;
+    const height = Math.max(wallHeight * 1.5, maxDim * 0.35);
+
+    camera.position.set(distance, height, distance);
+    camera.lookAt(0, 0, 0);
+    camera.far = Math.max(200, maxDim * 10);
+    camera.updateProjectionMatrix();
+
+    if (orbitRef.current) {
+      orbitRef.current.target.set(0, 0, 0);
+      orbitRef.current.update();
+    }
+  }, [roomWidth, roomLength, wallHeight, camera, orbitRef]);
+
+  return null;
+}
+
+type CameraSide = 'north' | 'south' | 'east' | 'west';
+
+function getCameraSide(x: number, z: number): CameraSide {
+  const absX = Math.abs(x);
+  const absZ = Math.abs(z);
+  return absX > absZ ? (x > 0 ? 'east' : 'west') : z > 0 ? 'north' : 'south';
+}
+
+function CameraSideTracker({ onChange }: { onChange: (value: CameraSide) => void }) {
+  const { camera } = useThree();
+  const last = useRef<CameraSide | null>(null);
+
+  useFrame(() => {
+    const side = getCameraSide(camera.position.x, camera.position.z);
+    if (side !== last.current) {
+      last.current = side;
+      onChange(side);
+    }
+  });
+
+  return null;
+}
+
+function WallSegment({
+  side,
+  activeSide,
+  position,
+  rotation,
+  size,
+  color,
+}: {
+  side: CameraSide;
+  activeSide: CameraSide;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  size: [number, number, number];
+  color: string;
+}) {
+  const matRef = useRef<MeshStandardMaterial | null>(null);
+
+  useFrame(() => {
+    if (!matRef.current) return;
+    const target = side === activeSide ? 0 : 0.65;
+    matRef.current.opacity = MathUtils.lerp(matRef.current.opacity, target, 0.15);
+  });
+
+  return (
+    <mesh position={position} rotation={rotation}>
+      <boxGeometry args={size} />
+      <meshStandardMaterial
+        ref={matRef}
+        color={color}
+        side={1}
+        transparent
+        opacity={0.65}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
+function RoomWalls({ roomWidth, roomLength, wallHeight, wallColor, hiddenSide }: { roomWidth: number; roomLength: number; wallHeight: number; wallColor: string; hiddenSide: CameraSide }) {
+  return (
+    <group position={[0, wallHeight / 2, 0]}>
+      <WallSegment
+        side="south"
+        activeSide={hiddenSide}
+        position={[0, 0, -roomLength / 2]}
+        rotation={[0, Math.PI, 0]}
+        size={[roomWidth, wallHeight, 0.01]}
+        color={wallColor}
+      />
+      <WallSegment
+        side="north"
+        activeSide={hiddenSide}
+        position={[0, 0, roomLength / 2]}
+        size={[roomWidth, wallHeight, 0.01]}
+        color={wallColor}
+      />
+      <WallSegment
+        side="west"
+        activeSide={hiddenSide}
+        position={[-roomWidth / 2, 0, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        size={[roomLength, wallHeight, 0.01]}
+        color={wallColor}
+      />
+      <WallSegment
+        side="east"
+        activeSide={hiddenSide}
+        position={[roomWidth / 2, 0, 0]}
+        rotation={[0, -Math.PI / 2, 0]}
+        size={[roomLength, wallHeight, 0.01]}
+        color={wallColor}
+      />
+    </group>
+  );
+}
+
+function createWoodTexture() {
+  const canvas = document.createElement('canvas');
+  const size = 512;
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // Base tone (darker)
+  ctx.fillStyle = '#7a4f2a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Plank bands with subtle variation
+  const plankWidth = 64;
+  for (let x = 0; x < size; x += plankWidth) {
+    const variance = Math.floor(Math.random() * 20) - 10;
+    ctx.fillStyle = `rgba(${120 + variance}, ${78 + variance / 2}, ${45 + variance / 3}, 0.18)`;
+    ctx.fillRect(x, 0, plankWidth, size);
+  }
+
+  // Plank seams
+  ctx.fillStyle = 'rgba(40, 25, 15, 0.35)';
+  for (let x = 0; x <= size; x += plankWidth) {
+    ctx.fillRect(x - 1, 0, 2, size);
+  }
+
+  // Subtle board-wide noise to break uniformity
+  for (let i = 0; i < 4000; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const alpha = 0.03 + Math.random() * 0.05;
+    ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+    ctx.fillRect(x, y, 2, 2);
+  }
+
+  // Irregular grain lines (vary spacing, thickness, and tone)
+  let y = 0;
+  while (y < size) {
+    const step = 2 + Math.random() * 6;
+    const thickness = 1 + Math.floor(Math.random() * 2);
+    const shade = 95 + Math.floor(Math.random() * 70);
+    ctx.fillStyle = `rgb(${shade}, ${shade - 30}, ${shade - 45})`;
+    ctx.fillRect(0, y, size, thickness);
+    y += step;
+  }
+
+  // Subtle knots
+  for (let i = 0; i < 14; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const r = 10 + Math.random() * 30;
+    ctx.strokeStyle = 'rgba(90, 60, 40, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  const texture = new CanvasTexture(canvas);
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.colorSpace = SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function buildShape(points: Array<{ x: number; z: number }>) {
+  const shape = new Shape();
+  shape.moveTo(points[0].x, points[0].z);
+  for (let i = 1; i < points.length; i++) {
+    shape.lineTo(points[i].x, points[i].z);
+  }
+  shape.closePath();
+  return shape;
+}
+
+function buildSegments(points: Array<{ x: number; z: number }>) {
+  const segments: Array<{ x1: number; z1: number; x2: number; z2: number }> = [];
+  for (let i = 0; i < points.length; i++) {
+    const p1 = points[i];
+    const p2 = points[(i + 1) % points.length];
+    segments.push({ x1: p1.x, z1: p1.z, x2: p2.x, z2: p2.z });
+  }
+  return segments;
 }
 
 /** * COMPONENTS */
-function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY }: FurnitureProps) {
+function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY, roomWidth, roomLength }: FurnitureProps) {
   const { scene } = useGLTF(url); 
-  const [mesh, setMesh] = useState<Object3D | null>(null);
+  const groupRef = useRef<Object3D>(null);
+  const [transformObject, setTransformObject] = useState<Object3D | null>(null);
   const controlsRef = useRef<any>(null);
+  const globalScale = 2.0;
+  const setGroupRef = useCallback((node: Object3D | null) => {
+    groupRef.current = node;
+    setTransformObject(node);
+  }, []);
 
   const clonedScene = React.useMemo(() => {
-    const clone = scene.clone();
+    const clone = scene.clone(true);
+
+    // Center and normalize scale so models don't spawn far away or huge/tiny.
     const box = new Box3().setFromObject(clone);
-    clone.children.forEach((child) => {
-      child.position.y -= box.min.y;
+    const size = new Vector3();
+    const center = new Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+
+    // Move model to origin (centered).
+    clone.position.sub(center);
+
+    // Apply a global scale and lift so the model sits on the floor.
+    clone.scale.multiplyScalar(globalScale);
+    const box2 = new Box3().setFromObject(clone);
+    clone.position.y -= box2.min.y;
+
+    clone.traverse((obj: any) => {
+      if (obj.isMesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+      }
     });
+
     return clone;
   }, [scene]);
 
@@ -44,44 +282,62 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
 
   return (
     <group>
-      {isSelected && mesh ? (
+      {isSelected && transformObject ? (
         <TransformControls 
           ref={controlsRef}
-          object={mesh} 
+          object={transformObject} 
           mode={mode} 
           showY={mode !== 'translate'} 
           translationSnap={0.1}
           rotationSnap={Math.PI / 8}
           onMouseUp={() => {
-            if (mesh) {
-              // Always lock to the CURRENT floorY
-              onUpdatePosition([mesh.position.x, floorY, mesh.position.z]);
+            if (groupRef.current) {
+              // Clamp furniture within room boundaries.
+              const padding = 0.5;
+              const maxX = roomWidth / 2 - padding;
+              const maxZ = roomLength / 2 - padding;
+              const clampedX = Math.min(Math.max(groupRef.current.position.x, -maxX), maxX);
+              const clampedZ = Math.min(Math.max(groupRef.current.position.z, -maxZ), maxZ);
+
+              groupRef.current.position.x = clampedX;
+              groupRef.current.position.z = clampedZ;
+
+              onUpdatePosition([clampedX, floorY, clampedZ]);
             }
           }}
         />
       ) : null}
       
-      <primitive 
-        ref={setMesh} 
-        object={clonedScene} 
-        position={[position[0], floorY, position[2]]} 
-        onClick={(e: any) => { e.stopPropagation(); onSelect(); }} 
-        castShadow 
-      />
+      <group
+        ref={setGroupRef}
+        position={[position[0], floorY, position[2]]}
+        onClick={(e: any) => { e.stopPropagation(); onSelect(); }}
+      >
+        <primitive object={clonedScene} castShadow />
+      </group>
     </group>
   );
 }
 
 const VisualizationPage = () => {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState('furnish'); 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [cameraSide, setCameraSide] = useState<CameraSide>('south');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'build' | 'furnish' | 'saved'>('furnish'); 
+  const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
+  const [loadingDesigns, setLoadingDesigns] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [savingLayout, setSavingLayout] = useState(false);
+  const [showSaveToast, setShowSaveToast] = useState(false);
 
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
   const [sceneItems, setSceneItems] = useState<any[]>([]); 
   const [activeCategory, setActiveCategory] = useState('living');
+  const orbitRef = useRef<any>(null);
 
   const [roomShape, setRoomShape] = useState('rectangle');
   const [roomWidth, setRoomWidth] = useState(10);
@@ -89,15 +345,84 @@ const VisualizationPage = () => {
   const [wallHeight, setWallHeight] = useState(4.5); 
   const [wallColor, setWallColor] = useState('#f8fafc'); 
   const [floorColor, setFloorColor] = useState('#d4b895'); 
+  const woodTexture = React.useMemo(() => createWoodTexture(), []);
+  const wallThickness = 0.12;
+
+  const lShapeData = React.useMemo(() => {
+    const armRatio = 0.6;
+    const armWidth = roomWidth * armRatio;
+    const armLength = roomLength * armRatio;
+    const w2 = roomWidth / 2;
+    const l2 = roomLength / 2;
+    const xCut = -w2 + armWidth;
+    const zCut = -l2 + armLength;
+
+    const points = [
+      { x: -w2, z: -l2 },
+      { x: w2, z: -l2 },
+      { x: w2, z: zCut },
+      { x: xCut, z: zCut },
+      { x: xCut, z: l2 },
+      { x: -w2, z: l2 },
+    ];
+
+    return {
+      armWidth,
+      armLength,
+      points,
+      shape: buildShape(points),
+      segments: buildSegments(points),
+    };
+  }, [roomWidth, roomLength]);
+
+  const tShapeData = React.useMemo(() => {
+    const barRatio = 0.35;
+    const stemRatio = 0.35;
+    const barLength = roomLength * barRatio;
+    const stemWidth = roomWidth * stemRatio;
+    const stemLength = roomLength - barLength;
+    const w2 = roomWidth / 2;
+    const l2 = roomLength / 2;
+    const stemHalf = stemWidth / 2;
+    const zBar = l2 - barLength;
+
+    const points = [
+      { x: -w2, z: l2 },
+      { x: w2, z: l2 },
+      { x: w2, z: zBar },
+      { x: stemHalf, z: zBar },
+      { x: stemHalf, z: -l2 },
+      { x: -stemHalf, z: -l2 },
+      { x: -stemHalf, z: zBar },
+      { x: -w2, z: zBar },
+    ];
+
+    return {
+      barLength,
+      stemWidth,
+      stemLength,
+      points,
+      shape: buildShape(points),
+      segments: buildSegments(points),
+    };
+  }, [roomWidth, roomLength]);
+
+  useEffect(() => {
+    if (!woodTexture) return;
+    const repeatX = Math.max(1, roomWidth / 2);
+    const repeatY = Math.max(1, roomLength / 2);
+    woodTexture.repeat.set(repeatX, repeatY);
+    woodTexture.needsUpdate = true;
+  }, [roomWidth, roomLength, woodTexture]);
 
   
   const roomLayouts = [
-    { id: 'square', name: 'Square', icon: 'M4 4h16v16H4z', w: 500, l: 500 },
-    { id: 'rectangle', name: 'Rectangle', icon: 'M2 6h20v12H2z', w: 1000, l: 800 },
-    { id: 'narrow', name: 'Narrow', icon: 'M6 2h12v20H6z', w: 600, l: 1400 },
-    { id: 'studio', name: 'Studio', icon: 'M2 2h20v20H2z', w: 1600, l: 1600 },
-    { id: 'l-shape', name: 'L-Shape', icon: 'M4 4h8v8h8v8H4z', w: 1200, l: 1200 },
-    { id: 't-shape', name: 'T-Shape', icon: 'M2 4h20v6h-6v10H8V10H2z', w: 1400, l: 1400 },
+    { id: 'square', name: 'Square', icon: 'M4 4h16v16H4z', w: 10, l: 10 },
+    { id: 'rectangle', name: 'Rectangle', icon: 'M2 6h20v12H2z', w: 10, l: 15 },
+    { id: 'narrow', name: 'Narrow', icon: 'M6 2h12v20H6z', w: 15, l: 10 },
+    { id: 'studio', name: 'Studio', icon: 'M2 2h20v20H2z', w: 20, l: 20 },
+    { id: 'l-shape', name: 'L-Shape', icon: 'M4 4h8v8h8v8H4z', w: 12, l: 12 },
+    { id: 't-shape', name: 'T-Shape', icon: 'M2 4h20v6h-6v10H8V10H2z', w: 14, l: 14 },
   ];
 
   const floorMaterials = [
@@ -114,24 +439,62 @@ const VisualizationPage = () => {
 
   const furnitureCatalog: Record<string, any[]> = {
     living: [
-      { id: 'lv1', name: 'Classic Oak Chair', price: 'LKR 45,000', url: '/models/Chair.glb' },
-      { id: 'lv2', name: 'Velvet Sofa', price: 'LKR 245,000', url: '/models/Chair.glb' },
+      { id: 'lv1', name: 'Wood Chair', price: 'LKR 45,000', url: '/models/WoodChair.glb' },
+      { id: 'lv2', name: 'Luxury Sofa', price: 'LKR 245,000', url: '/models/Sofa.glb' },
+      { id: 'lv3', name: 'Cool Table', price: 'LKR 120,000', url: '/models/CoolTable.glb' },
     ],
     dining: [
-      { id: 'd1', name: 'Marble Dining Table', price: 'LKR 120,000', url: '/models/DiningTable.glb' },
-      { id: 'd2', name: 'Dining Chair', price: 'LKR 80,000', url: '/models/Chair.glb' },
+      { id: 'd1', name: 'Formal Dining Table', price: 'LKR 120,000', url: '/models/FTable.glb' },
+      { id: 'd2', name: 'Dining Chair', price: 'LKR 80,000', url: '/models/WoodChairFTable.glb' },
     ], 
     bedroom: [
-      { id: 'b1', name: 'King Size Bed', price: 'LKR 200,000', url: '/models/Chair.glb' },
-      { id: 'b2', name: 'Wardrobe', price: 'LKR 150,000', url: '/models/Chair.glb' },
+      { id: 'b1', name: 'King Sized Bed', price: 'LKR 200,000', url: '/models/KingSizedBed.glb' },
     ],
     decoration: [
-      { id: 'dec1', name: 'Floor Lamp', price: 'LKR 30,000', url: '/models/Chair.glb' },
-      { id: 'dec2', name: 'Wall Art', price: 'LKR 25,000', url: '/models/Chair.glb' },
+      { id: 'dec1', name: 'Lamp', price: 'LKR 30,000', url: '/models/Lamp.glb' },
+      { id: 'dec2', name: 'Cool Lamp', price: 'LKR 25,000', url: '/models/CoolLamp.glb' },
     ]
   };
 
-  useEffect(() => { setMounted(true); }, []);
+  const loadMyDesigns = async () => {
+    if (!userId) {
+      alert("Please sign in to load your designs.");
+      return;
+    }
+    setLoadingDesigns(true);
+    try {
+      const { getDocs, query, where, orderBy } = await import("firebase/firestore");
+      const q = query(collection(db, "designs"), where("userId", "==", userId), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setSavedDesigns(rows);
+      setActiveTab('saved');
+    } catch (e) {
+      console.error(e);
+      alert("Could not load designs.");
+    } finally {
+      setLoadingDesigns(false);
+    }
+  };
+
+  const applyDesign = (design: any) => {
+    const r = design.room || {};
+    setRoomShape(r.shape || 'rectangle');
+    setRoomWidth(r.width || 10);
+    setRoomLength(r.length || 10);
+    setWallHeight(r.wallHeight || 4.5);
+    setWallColor(r.wallColor || '#f8fafc');
+    setFloorColor(r.floorColor || '#d4b895');
+    setSceneItems(design.sceneItems || []);
+    setSelectedItem(null);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    // Smoothly slide header/footer away and expand the viewer to fullscreen.
+    const timeout = window.setTimeout(() => setIsFullscreen(true), 50);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const handleScreenshot = () => {
     if (canvasRef.current) {
@@ -143,30 +506,144 @@ const VisualizationPage = () => {
   };
 
   const handleAddItemToScene = (item: any) => {
-    const newItem = { ...item, uniqueId: `${item.id}-${Date.now()}`, position: [0, 0, 0] };
+    const padding = 1;
+    const halfW = Math.max(0, roomWidth / 2 - padding);
+    const halfL = Math.max(0, roomLength / 2 - padding);
+    const spawnX = Math.max(-halfW, Math.min(0, halfW));
+    const spawnZ = Math.max(-halfL, Math.min(0, halfL));
+
+    const newItem = { ...item, uniqueId: `${item.id}-${Date.now()}`, position: [spawnX, 0, spawnZ] };
     setSceneItems([...sceneItems, newItem]);
     setSelectedItem(newItem.uniqueId); 
+  };
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUserId(u ? u.uid : null);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSaveLayout = async () => {
+    if (!userId) {
+      alert("Please sign in to save your design.");
+      return;
+    }
+    if (savingLayout) return;
+    setSavingLayout(true);
+    try {
+      const payload = {
+        userId,
+        sceneItems,
+        room: {
+          shape: roomShape,
+          width: roomWidth,
+          length: roomLength,
+          wallHeight,
+          wallColor,
+          floorColor,
+        },
+        createdAt: serverTimestamp(),
+      };
+      await addDoc(collection(db, "designs"), payload);
+      setShowSaveToast(true);
+      window.setTimeout(() => setShowSaveToast(false), 2500);
+    } catch (e) {
+      console.error("Failed to save design", e);
+      alert("Failed to save design. Please try again.");
+    } finally {
+      setSavingLayout(false);
+    }
   };
 
   if (!mounted) return null;
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-[#f8fafc] text-gray-800 font-sans overflow-x-hidden">
-      <Navbar />
+    <div className="flex flex-col min-h-screen w-full bg-[#f8fafc] text-gray-800 font-sans overflow-hidden">
+      <div className={`overflow-hidden transition-all duration-700 ${isFullscreen ? 'h-0' : 'h-16'}`}>
+        <Navbar />
+      </div>
+
+      {/* Top controls (Snapshot/Save) */}
+      {(!isFullscreen) && (
+        <div className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0">
+          <div className="flex gap-3">
+              <button
+                onClick={handleScreenshot}
+                title="Snapshot"
+                className="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg transition-all shadow-sm active:scale-95"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 7H6L7 5H17L18 7H20C21.1046 7 22 7.89543 22 9V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V9C2 7.89543 2.89543 7 4 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 17C14.2091 17 16 15.2091 16 13C16 10.7909 14.2091 9 12 9C9.79086 9 8 10.7909 8 13C8 15.2091 9.79086 17 12 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+              <button
+                onClick={handleSaveLayout}
+                disabled={savingLayout}
+                title="Save Layout"
+                className="w-10 h-10 flex items-center justify-center bg-black hover:bg-black/90 disabled:bg-black/60 disabled:cursor-not-allowed text-white rounded-lg shadow-md transition-all active:scale-95"
+              >
+                {savingLayout ? (
+                  <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H15L21 9V19C21 20.1046 20.1046 21 19 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M17 21V13H7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 3V9H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+          </div>
+        </div>
+      )}
+
+      {showSaveToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-black text-white text-xs font-black px-4 py-3 rounded-lg shadow-2xl border border-black/20">
+            Layout Saved !
+          </div>
+        </div>
+      )}
       
       {/* HEADER */}
       <div className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0">
         <div className="flex gap-3">
-            <button onClick={handleScreenshot} className="bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 text-[10px] font-black px-5 py-2 rounded-lg transition-all shadow-sm active:scale-95">SNAPSHOT</button>
-            <button className="bg-black hover:bg-gray-800 text-white text-[10px] font-black px-6 py-2 rounded-lg shadow-md transition-all active:scale-95">SAVE Layout</button>
+            <button
+              onClick={handleScreenshot}
+              title="Snapshot"
+              className="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg transition-all shadow-sm active:scale-95"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 7H6L7 5H17L18 7H20C21.1046 7 22 7.89543 22 9V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V9C2 7.89543 2.89543 7 4 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 17C14.2091 17 16 15.2091 16 13C16 10.7909 14.2091 9 12 9C9.79086 9 8 10.7909 8 13C8 15.2091 9.79086 17 12 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={handleSaveLayout}
+              disabled={savingLayout}
+              title="Save Layout"
+              className="w-10 h-10 flex items-center justify-center bg-black hover:bg-black/90 disabled:bg-black/60 disabled:cursor-not-allowed text-white rounded-lg shadow-md transition-all active:scale-95"
+            >
+              {savingLayout ? (
+                <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H15L21 9V19C21 20.1046 20.1046 21 19 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M17 21V13H7V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 3V9H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
         </div>
       </div>
 
-      <div className="relative w-full h-[1000px] overflow-hidden flex">
+      <div className="relative w-full overflow-hidden flex flex-1 min-h-0 transition-all duration-700">
         
         {/* SIDEBAR */}
         <div className="absolute top-0 left-0 w-80 h-full bg-white/95 backdrop-blur-md border-r border-gray-200 z-10 flex flex-col shadow-2xl">
-          <div className="flex p-3 border-b border-gray-100 gap-2">
+          <div className="flex items-center p-3 border-b border-gray-100 gap-2">
+            <button onClick={() => router.back()} className="px-2 py-2 bg-black text-white text-[10px] font-black rounded-lg shadow-sm hover:bg-black/90">←</button>
             <button onClick={() => setActiveTab('build')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'build' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Build</button>
             <button onClick={() => setActiveTab('furnish')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'furnish' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Furniture</button>
           </div>
@@ -222,11 +699,25 @@ const VisualizationPage = () => {
                   {catalogCategories.map(cat => (
                     <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={`px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all ${activeCategory === cat.id ? 'bg-black text-white border-black shadow-md' : 'bg-white text-gray-400'}`}>{cat.label}</button>
                   ))}
+                  <button onClick={loadMyDesigns} className="px-4 py-1.5 text-[10px] font-bold rounded-full border transition-all bg-white text-gray-400">{loadingDesigns ? 'Loading...' : 'My Designs'}</button>
                 </div>
                 {furnitureCatalog[activeCategory]?.map((item) => (
                   <div key={item.id} onClick={() => handleAddItemToScene(item)} className="group bg-white border border-gray-100 rounded-2xl p-4 hover:border-black cursor-pointer shadow-sm flex justify-between items-center active:scale-95">
                     <span className="text-sm font-bold text-gray-700">{item.name}</span>
                     <span className="text-[10px] font-black text-gray-200 group-hover:text-black transition-colors">+ ADD</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {activeTab === 'saved' && (
+              <div className="space-y-3">
+                {savedDesigns.length === 0 && (
+                  <div className="text-xs text-gray-400">No saved designs yet.</div>
+                )}
+                {savedDesigns.map((d) => (
+                  <div key={d.id} className="bg-white border border-gray-100 rounded-xl p-3 flex items-center justify-between">
+                    <div className="text-xs font-bold text-gray-700">{new Date(d.createdAt?.seconds ? d.createdAt.seconds*1000 : Date.now()).toLocaleString()}</div>
+                    <button onClick={() => applyDesign(d)} className="text-[10px] font-black px-3 py-1 rounded-lg border hover:bg-gray-50">Load</button>
                   </div>
                 ))}
               </div>
@@ -256,30 +747,153 @@ const VisualizationPage = () => {
 
         {/* 3D CANVAS */}
         <div className="absolute inset-0 z-0 pl-80 pr-72 bg-[#f1f5f9]">
+          <div className="fixed top-4 left-4 z-[90]">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
+            >
+              ←
+            </button>
+          </div>
           <Canvas 
             ref={canvasRef}
             gl={{ preserveDrawingBuffer: true, antialias: true }} 
             shadows 
-            camera={{ position: [500, 500, 500], fov: 45, far: 100000 }} 
+            camera={{ position: [10, 10, 10], fov: 45, far: 2000 }} 
             onPointerMissed={() => setSelectedItem(null)}
           >
             <Suspense fallback={null}>
+              <SceneCamera roomWidth={roomWidth} roomLength={roomLength} wallHeight={wallHeight} orbitRef={orbitRef} />
+              <CameraSideTracker onChange={setCameraSide} />
               <ambientLight intensity={0.8} />
               <directionalLight position={[20, 30, 20]} intensity={1.8} castShadow shadow-mapSize={[2048, 2048]} />
               <Environment preset="city" />
-
-              <Grid infiniteGrid fadeDistance={400} sectionSize={1} sectionColor="#e2e8f0" cellColor="#ffffff" cellThickness={0.5} />
               
-              <group position={[0, wallHeight / 2, 0]}>
-                <mesh receiveShadow>
-                    <boxGeometry args={[roomWidth, wallHeight, roomLength]} />
-                    <meshStandardMaterial color={wallColor} side={1} transparent opacity={0.5} depthWrite={false} />
-                </mesh>
-                <mesh receiveShadow position={[0, -wallHeight / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              {roomShape === 'l-shape' ? (
+                <>
+                  <group position={[0, wallHeight / 2, 0]}>
+                    {lShapeData.segments.map((seg, idx) => {
+                      const isHorizontal = Math.abs(seg.z1 - seg.z2) < 0.0001;
+                      const length = isHorizontal ? Math.abs(seg.x2 - seg.x1) : Math.abs(seg.z2 - seg.z1);
+                      const centerX = (seg.x1 + seg.x2) / 2;
+                      const centerZ = (seg.z1 + seg.z2) / 2;
+                      const side = getCameraSide(centerX, centerZ);
+                      return (
+                        <WallSegment
+                          key={idx}
+                          side={side}
+                          activeSide={cameraSide}
+                          position={[centerX, 0, centerZ]}
+                          size={isHorizontal ? [length, wallHeight, wallThickness] : [wallThickness, wallHeight, length]}
+                          color={wallColor}
+                        />
+                      );
+                    })}
+                  </group>
+                  {(() => {
+                    const armWidth = lShapeData.armWidth;
+                    const armLength = lShapeData.armLength;
+                    const xCenter = -roomWidth / 2 + armWidth / 2;
+                    const zCenter = -roomLength / 2 + armLength / 2;
+                    return (
+                      <>
+                        <mesh receiveShadow position={[0, 0, zCenter]} rotation={[-Math.PI / 2, 0, 0]}>
+                          <planeGeometry args={[roomWidth, armLength]} />
+                          <meshStandardMaterial
+                            color={floorColor}
+                            roughness={0.8}
+                            map={woodTexture || undefined}
+                            polygonOffset
+                            polygonOffsetFactor={1}
+                            polygonOffsetUnits={1}
+                          />
+                        </mesh>
+                        <mesh receiveShadow position={[xCenter, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                          <planeGeometry args={[armWidth, roomLength]} />
+                          <meshStandardMaterial
+                            color={floorColor}
+                            roughness={0.8}
+                            map={woodTexture || undefined}
+                            polygonOffset
+                            polygonOffsetFactor={1}
+                            polygonOffsetUnits={1}
+                          />
+                        </mesh>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : roomShape === 't-shape' ? (
+                <>
+                  <group position={[0, wallHeight / 2, 0]}>
+                    {tShapeData.segments.map((seg, idx) => {
+                      const isHorizontal = Math.abs(seg.z1 - seg.z2) < 0.0001;
+                      const length = isHorizontal ? Math.abs(seg.x2 - seg.x1) : Math.abs(seg.z2 - seg.z1);
+                      const centerX = (seg.x1 + seg.x2) / 2;
+                      const centerZ = (seg.z1 + seg.z2) / 2;
+                      const side = getCameraSide(centerX, centerZ);
+                      return (
+                        <WallSegment
+                          key={idx}
+                          side={side}
+                          activeSide={cameraSide}
+                          position={[centerX, 0, centerZ]}
+                          size={isHorizontal ? [length, wallHeight, wallThickness] : [wallThickness, wallHeight, length]}
+                          color={wallColor}
+                        />
+                      );
+                    })}
+                  </group>
+                  {(() => {
+                    const barLength = tShapeData.barLength;
+                    const stemWidth = tShapeData.stemWidth;
+                    const stemLength = tShapeData.stemLength;
+                    const barCenterZ = roomLength / 2 - barLength / 2;
+                    const stemCenterZ = -roomLength / 2 + stemLength / 2;
+                    return (
+                      <>
+                        <mesh receiveShadow position={[0, 0, barCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+                          <planeGeometry args={[roomWidth, barLength]} />
+                          <meshStandardMaterial
+                            color={floorColor}
+                            roughness={0.8}
+                            map={woodTexture || undefined}
+                            polygonOffset
+                            polygonOffsetFactor={1}
+                            polygonOffsetUnits={1}
+                          />
+                        </mesh>
+                        <mesh receiveShadow position={[0, 0, stemCenterZ]} rotation={[-Math.PI / 2, 0, 0]}>
+                          <planeGeometry args={[stemWidth, stemLength]} />
+                          <meshStandardMaterial
+                            color={floorColor}
+                            roughness={0.8}
+                            map={woodTexture || undefined}
+                            polygonOffset
+                            polygonOffsetFactor={1}
+                            polygonOffsetUnits={1}
+                          />
+                        </mesh>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  <RoomWalls roomWidth={roomWidth} roomLength={roomLength} wallHeight={wallHeight} wallColor={wallColor} hiddenSide={cameraSide} />
+                  <mesh receiveShadow position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                     <planeGeometry args={[roomWidth, roomLength]} />
-                    <meshStandardMaterial color={floorColor} roughness={0.8} />
-                </mesh>
-              </group>
+                    <meshStandardMaterial
+                      color={floorColor}
+                      roughness={0.8}
+                      map={woodTexture || undefined}
+                      polygonOffset
+                      polygonOffsetFactor={1}
+                      polygonOffsetUnits={1}
+                    />
+                  </mesh>
+                </>
+              )}
 
               {sceneItems.map((item) => (
                 <Furniture 
@@ -291,6 +905,8 @@ const VisualizationPage = () => {
                   onSelect={() => setSelectedItem(item.uniqueId)}
                   setOrbitEnabled={setOrbitEnabled}
                   floorY={0}
+                  roomWidth={roomWidth}
+                  roomLength={roomLength}
                   onUpdatePosition={(newPos) => {
                     setSceneItems(prev => prev.map(i => i.uniqueId === item.uniqueId ? { ...i, position: newPos } : i));
                   }}
@@ -300,11 +916,13 @@ const VisualizationPage = () => {
             </Suspense>
 
             <ContactShadows position={[0,0,0]} opacity={0.4} scale={500} blur={2.5} far={20} />
-            <OrbitControls makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={Infinity} maxPolarAngle={Math.PI / 2.1} dampingFactor={0.05} enableDamping />
+            <OrbitControls ref={orbitRef} makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={Infinity} maxPolarAngle={Math.PI / 2.1} dampingFactor={0.05} enableDamping />
           </Canvas>
         </div>
       </div>
-      <Footer />
+      <div className={`overflow-hidden transition-all duration-700 ${isFullscreen ? 'h-0' : 'h-16'}`}>
+        <Footer />
+      </div>
     </div>
   );
 };

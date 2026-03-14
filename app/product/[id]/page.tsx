@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Star, ShoppingCart, Heart, Shield, Truck, RotateCcw, ChevronRight, Box, Maximize2, Trash2, Layout, Plus, Palette } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
@@ -77,8 +77,13 @@ const VisualizationPage = () => {
 function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY }: any) {
   const gltf = useGLTF(url) as any;
   const scene = gltf.scene;
-  const [mesh, setMesh] = useState<Object3D | null>(null);
+  const groupRef = useRef<Object3D>(null);
+  const [transformObject, setTransformObject] = useState<Object3D | null>(null);
   const controlsRef = useRef<any>(null);
+  const setGroupRef = useCallback((node: Object3D | null) => {
+    groupRef.current = node;
+    setTransformObject(node);
+  }, []);
 
   const clonedScene = React.useMemo(() => {
     const clone = scene.clone();
@@ -97,16 +102,19 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
 
   return (
     <group>
-      {isSelected && mesh && (
+      {isSelected && transformObject && (
         <TransformControls
-          ref={controlsRef} object={mesh} mode={mode} showY={false}
-          onMouseUp={() => mesh && onUpdatePosition([mesh.position.x, floorY, mesh.position.z])}
+          ref={controlsRef} object={transformObject} mode={mode} showY={false}
+          onMouseUp={() => groupRef.current && onUpdatePosition([groupRef.current.position.x, floorY, groupRef.current.position.z])}
         />
       )}
-      <primitive
-        ref={setMesh} object={clonedScene} position={[position[0], floorY, position[2]]}
-        onClick={(e: any) => { e.stopPropagation(); onSelect(); }} castShadow
-      />
+      <group
+        ref={setGroupRef}
+        position={[position[0], floorY, position[2]]}
+        onClick={(e: any) => { e.stopPropagation(); onSelect(); }}
+      >
+        <primitive object={clonedScene} castShadow />
+      </group>
     </group>
   );
 }
