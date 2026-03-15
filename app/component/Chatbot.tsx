@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Sparkles, MessageSquare } from "lucide-react";
+import { X, Send, MessageSquare } from "lucide-react";
 
 type Message = {
     id: string;
@@ -27,6 +27,88 @@ export default function OpulentiaChatbot() {
         },
     ]);
 
+    const escapeHtml = (str: string) =>
+        str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+
+    const decodeHtmlEntities = (text: string) =>
+        text
+            .replace(/&quot;/g, '"')
+            .replace(/&apos;/g, "'")
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&');
+
+    const parseInlineMarkdown = (text: string): React.ReactNode[] => {
+        // Order matters: links > bold > italic > code
+        const patterns: Array<{
+            regex: RegExp;
+            render: (groups: RegExpMatchArray) => React.ReactNode;
+        }> = [
+            {
+                regex: /\[([^\]]+)\]\(([^)]+)\)/,
+                render: (m) => (
+                    <a key={Math.random()} href={m[2]} target="_blank" rel="noreferrer" className="underline">
+                        {m[1]}
+                    </a>
+                ),
+            },
+            {
+                regex: /\*\*(.+?)\*\*/,
+                render: (m) => <strong key={Math.random()}>{parseInlineMarkdown(m[1])}</strong>,
+            },
+            {
+                regex: /__(.+?)__/, // alternative bold
+                render: (m) => <strong key={Math.random()}>{parseInlineMarkdown(m[1])}</strong>,
+            },
+            {
+                regex: /\*(.+?)\*/,
+                render: (m) => <em key={Math.random()}>{parseInlineMarkdown(m[1])}</em>,
+            },
+            {
+                regex: /_(.+?)_/, // alternative italic
+                render: (m) => <em key={Math.random()}>{parseInlineMarkdown(m[1])}</em>,
+            },
+            {
+                regex: /`([^`]+)`/,
+                render: (m) => (
+                    <code key={Math.random()} className="rounded bg-gray-100 px-1 py-0.5 text-[11px]">
+                        {m[1]}
+                    </code>
+                ),
+            },
+        ];
+
+        for (const { regex, render } of patterns) {
+            const match = regex.exec(text);
+            if (!match || match.index === undefined) continue;
+            const before = text.slice(0, match.index);
+            const after = text.slice(match.index + match[0].length);
+            return [
+                ...parseInlineMarkdown(before),
+                render(match),
+                ...parseInlineMarkdown(after),
+            ];
+        }
+
+        return [escapeHtml(text)];
+    };
+
+    const renderMarkdown = (text: string) => {
+        const decoded = decodeHtmlEntities(text);
+        const lines = decoded.split("\n");
+        return lines.map((line, idx) => (
+            <React.Fragment key={idx}>
+                {parseInlineMarkdown(line)}
+                {idx < lines.length - 1 ? <br /> : null}
+            </React.Fragment>
+        ));
+    };
+
     React.useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
@@ -44,7 +126,9 @@ export default function OpulentiaChatbot() {
 
         try {
             // Ensure this is your PRODUCTION URL from the n8n Webhook node
-            const N8N_URL = "http://35.184.98.47:3001/webhook/chat";
+            const N8N_URL = "https://opulentia.app.n8n.cloud/webhook/chat";
+            
+
 
             const response = await fetch(N8N_URL, {
                 method: "POST",
@@ -111,7 +195,7 @@ export default function OpulentiaChatbot() {
                                     <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-sm font-light ${
                                         msg.sender === "user" ? "bg-[#0A192F] text-white rounded-br-none" : "bg-white border text-black rounded-bl-none shadow-sm"
                                     }`}>
-                                        {msg.text}
+                                        {renderMarkdown(msg.text)}
                                     </div>
                                 </div>
                             ))}

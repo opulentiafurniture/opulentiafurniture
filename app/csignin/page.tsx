@@ -225,7 +225,7 @@ export default function OpulentiaSignIn() {
                 }}
                 error={emailError}
               />
-\
+
               <Input
                 label="Password"
                 type={showPass ? "text" : "password"}
