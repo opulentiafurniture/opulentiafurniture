@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation"; 
 import { cn } from "../../lib/utils";
-import { auth } from "@/lib/firebase"; 
+import { auth, db } from "@/lib/firebase"; 
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
 const Button = React.forwardRef(({ className, variant = "gold", isLoading, children, ...props }: any, ref) => {
   const variants: any = {
@@ -177,6 +178,15 @@ export default function OpulentiaSignUp() {
       if (userCredential.user) {
         await updateProfile(userCredential.user, {
           displayName: name.trim()
+        });
+
+        // Save profile data into Firestore so the profile page can reliably display the user name
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          name: name.trim(),
+          displayName: name.trim(),
+          email,
+          role: "user",
+          createdAt: serverTimestamp(),
         });
       }
       

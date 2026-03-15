@@ -512,9 +512,9 @@ const VisualizationPage = () => {
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setSavedDesigns(rows);
       setActiveTab('saved');
-    } catch (e) {
-      console.error(e);
-      alert("Could not load designs.");
+    } catch (e: any) {
+      console.error("Failed to load designs:", e);
+      alert(`Could not load designs: ${e?.message || e}`);
     } finally {
       setLoadingDesigns(false);
     }
