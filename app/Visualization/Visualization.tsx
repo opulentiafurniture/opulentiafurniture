@@ -415,6 +415,44 @@ export default function Visualization({
     // Initialize undo/redo history
     setHistory([getSnapshot()]);
     setHistoryIndex(0);
+
+    // Load a design that was selected from Profile > Saved Designs
+    try {
+      const raw = localStorage.getItem('opulentia_selected_design');
+      if (raw) {
+        const design = JSON.parse(raw);
+        const r = design.room || {};
+        const nextScene = design.sceneItems || [];
+
+        setRoomShape(r.shape || 'rectangle');
+        setRoomWidth(r.width || 10);
+        setRoomLength(r.length || 10);
+        setWallHeight(r.wallHeight || 4.5);
+        setWallColor(r.wallColor || '#f8fafc');
+        setFloorColor(r.floorColor || '#d4b895');
+        setSceneItems(nextScene);
+        setSelectedItem(null);
+
+        pushHistory(
+          getSnapshot({
+            sceneItems: nextScene,
+            roomShape: r.shape || 'rectangle',
+            roomWidth: r.width || 10,
+            roomLength: r.length || 10,
+            wallHeight: r.wallHeight || 4.5,
+            wallColor: r.wallColor || '#f8fafc',
+            floorColor: r.floorColor || '#d4b895',
+            selectedItem: null,
+          })
+        );
+
+        // Clear it so future visits don't automatically re-load
+        localStorage.removeItem('opulentia_selected_design');
+      }
+    } catch (e) {
+      console.warn('Failed to load selected design from storage', e);
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

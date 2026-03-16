@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy } from "firebase/firestore";
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
@@ -40,6 +40,8 @@ export default function OpulentiaProfile() {
   const router = useRouter();
   const [userData, setUserData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [savedDesigns, setSavedDesigns] = React.useState<any[]>([]);
+  const [loadingDesigns, setLoadingDesigns] = React.useState(false);
 
   const [activeTab, setActiveTab] = React.useState("Profile Details");
 
@@ -66,10 +68,22 @@ export default function OpulentiaProfile() {
             });
             setEditName(user.displayName || user.email?.split('@')[0] || "");
           }
+
+          // Load saved designs for this user
+          setLoadingDesigns(true);
+          const designsQuery = query(
+            collection(db, "designs"),
+            where("userId", "==", user.uid),
+            orderBy("createdAt", "desc")
+          );
+          const designsSnap = await getDocs(designsQuery);
+          const designs = designsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setSavedDesigns(designs);
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error("Error fetching user data or designs:", error);
         } finally {
           setLoading(false);
+          setLoadingDesigns(false);
         }
       } else {
         router.push("/csignin");
@@ -224,6 +238,59 @@ export default function OpulentiaProfile() {
     </>
   );
 
+const renderSavedDesigns = () => (
+    <>
+      <header className="mb-10 border-b border-white/10 pb-6">
+        <h1 className="text-3xl font-extralight tracking-tighter uppercase mb-2">Saved Designs</h1>
+        <p className="text-[11px] text-[#D4AF37] tracking-[0.3em] uppercase">Access your saved room layouts</p>
+      </header>
+
+      {loadingDesigns ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="animate-spin text-[#D4AF37]" size={36} />
+        </div>
+      ) : savedDesigns.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-white/10 rounded-sm bg-white/[0.01]">
+          <div className="h-16 w-16 rounded-full bg-white/5 flex items-center justify-center mb-6">
+            <Package size={24} className="text-[#D4AF37]" />
+          </div>
+          <h3 className="text-sm font-bold tracking-widest uppercase mb-2">No saved designs yet</h3>
+          <p className="text-[11px] text-white/40 tracking-wider mb-8 max-w-xs">Create a layout in the Visualization tool and save it to see it here.</p>
+          <Button onClick={() => router.push('/Visualization')}>
+            Open Visualization <ArrowRight size={14} className="ml-2" />
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {savedDesigns.map((design) => (
+            <div key={design.id} className="bg-white/[0.02] border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-bold text-white">{design.name || 'Saved Design'}</div>
+                  <div className="text-[10px] text-white/40">{formatDate(design.createdAt)}</div>
+                </div>
+                <button
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('opulentia_selected_design', JSON.stringify(design));
+                    } catch (e) {
+                      console.warn('Failed to store selected design locally', e);
+                    }
+                    router.push('/Visualization');
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest px-3 py-2 bg-[#D4AF37] text-[#0A192F] rounded-sm"
+                >
+                  Open
+                </button>
+              </div>
+              <div className="text-[10px] text-white/40 break-words">ID: {design.id}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
   const renderWishlist = () => (
     <>
       <header className="mb-10 border-b border-white/10 pb-6">
@@ -257,6 +324,7 @@ export default function OpulentiaProfile() {
               { name: "Profile Details", icon: User },
               { name: "Order History", icon: Package },
               { name: "Wishlist", icon: Heart },
+              { name: "Saved Designs", icon: Package },
             ].map((item) => (
               <button 
                 key={item.name}
@@ -288,6 +356,7 @@ export default function OpulentiaProfile() {
               {activeTab === "Profile Details" && renderProfileDetails()}
               {activeTab === "Order History" && renderOrderHistory()}
               {activeTab === "Wishlist" && renderWishlist()}
+              {activeTab === "Saved Designs" && renderSavedDesigns()}
             </motion.div>
           </AnimatePresence>
         </section>
