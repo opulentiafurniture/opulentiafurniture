@@ -10,6 +10,7 @@ import Footer from "../component/footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { toast } from "react-toastify";
 import { ALL_PRODUCTS } from "@/lib/product";
 import { CameraSide, SceneCamera, CameraSideTracker, RoomWalls, getCameraSide, WallSegment, createWoodTexture, Furniture } from "./Scene3D";
 
@@ -132,11 +133,11 @@ export default function Visualization({
   const [loadingDesigns, setLoadingDesigns] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [savingLayout, setSavingLayout] = useState(false);
-  const [showSaveToast, setShowSaveToast] = useState(false);
 
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [sceneItems, setSceneItems] = useState<VisualizationSceneItem[]>(initialSceneItems);
   const selectedSceneItem = React.useMemo(() => sceneItems.find((i) => i.uniqueId === selectedItem) ?? null, [sceneItems, selectedItem]);
   const [history, setHistory] = useState<VisualizationSnapshot[]>([]);
@@ -354,15 +355,16 @@ export default function Visualization({
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setSavedDesigns(rows);
       setActiveTab('saved');
+      toast.success('Loaded saved designs.');
     } catch (e: any) {
       console.error("Failed to load designs:", e);
       if (e?.message?.toLowerCase().includes('missing or insufficient permissions')) {
         const local = loadLocalDesigns(userId);
         setSavedDesigns(local);
         setActiveTab('saved');
-        alert('Unable to load designs from the server; loaded local designs instead.');
+        toast.info('Unable to load designs from the server; loaded local designs instead.');
       } else {
-        alert(`Could not load designs: ${e?.message || e}`);
+        toast.error(`Could not load designs: ${e?.message || e}`);
       }
     } finally {
       setLoadingDesigns(false);
@@ -529,8 +531,7 @@ export default function Visualization({
 
     try {
       await addDoc(collection(db, "designs"), payload);
-      setShowSaveToast(true);
-      window.setTimeout(() => setShowSaveToast(false), 2500);
+      toast.success('Design saved successfully.');
     } catch (e: any) {
       console.error("Failed to save design", e);
       if (e?.message?.toLowerCase().includes('missing or insufficient permissions')) {
@@ -538,12 +539,12 @@ export default function Visualization({
         if (local) {
           setSavedDesigns(local);
           setActiveTab('saved');
-          alert('Could not save to server; design was saved locally instead.');
+          toast.info('Could not save to server; design was saved locally instead.');
         } else {
-          alert('Could not save design. Local storage is unavailable.');
+          toast.error('Could not save design. Local storage is unavailable.');
         }
       } else {
-        alert("Failed to save design. Please try again.");
+        toast.error("Failed to save design. Please try again.");
       }
     } finally {
       setSavingLayout(false);
@@ -613,13 +614,6 @@ export default function Visualization({
         </div>
       )}
 
-      {showSaveToast && (
-        <div className="fixed top-4 right-4 z-50">
-          <div className="bg-black text-white text-xs font-black px-4 py-3 rounded-lg shadow-2xl border border-black/20">
-            Layout Saved !
-          </div>
-        </div>
-      )}
       
       {showChrome && (
         <div className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0">
@@ -813,6 +807,7 @@ export default function Visualization({
                         setSceneItems(nextScene);
                         if (selectedItem === item.uniqueId) setSelectedItem(null);
                         pushHistory(getSnapshot({ sceneItems: nextScene, selectedItem: selectedItem === item.uniqueId ? null : selectedItem }));
+                        toast.info('Item removed from scene.');
                       }}
                       className="text-[10px] font-black px-2 py-1 rounded-lg border border-red-100 text-red-500 hover:bg-red-50"
                     >
@@ -828,6 +823,7 @@ export default function Visualization({
                 setSceneItems([]);
                 setSelectedItem(null);
                 pushHistory(getSnapshot({ sceneItems: [], selectedItem: null }));
+                toast.info('Workspace cleared.');
               }}
               className="mt-4 py-3 bg-white text-gray-400 text-[10px] font-bold rounded-xl border border-gray-200 hover:border-red-200 transition-all uppercase tracking-tighter"
             >
@@ -853,6 +849,18 @@ export default function Visualization({
                 className={`px-3 py-2 text-[10px] font-black transition-all border ${canRedo ? 'border-white text-white hover:bg-white/15' : 'border-gray-700 text-gray-500 cursor-not-allowed'} rounded-sm`}
               >
                 REDO
+              </button>
+              <button
+                onClick={() => setViewMode('3d')}
+                className={`px-3 py-2 text-[10px] font-black transition-all border ${viewMode === '3d' ? 'border-white text-white hover:bg-white/15' : 'border-gray-700 text-gray-500 cursor-pointer'} rounded-sm`}
+              >
+                3D
+              </button>
+              <button
+                onClick={() => setViewMode('2d')}
+                className={`px-3 py-2 text-[10px] font-black transition-all border ${viewMode === '2d' ? 'border-white text-white hover:bg-white/15' : 'border-gray-700 text-gray-500 cursor-pointer'} rounded-sm`}
+              >
+                2D
               </button>
             </div>
 
@@ -886,10 +894,16 @@ export default function Visualization({
             </div>
           )}
           <Canvas 
+            key={viewMode}
             ref={canvasRef}
             gl={{ preserveDrawingBuffer: true, antialias: true }} 
             shadows 
-            camera={{ position: [10, 10, 10], fov: 45, far: 2000 }} 
+            orthographic={viewMode === '2d'}
+            camera={
+              viewMode === '3d'
+                ? { position: [10, 10, 10], fov: 45, far: 2000 }
+                : { position: [0, 22, 0], zoom: 40, near: 0.1, far: 2000, up: [0, 0, -1] }
+            }
             onPointerMissed={() => setSelectedItem(null)}
             onCreated={() => setIsCanvasLoading(false)}
           >
@@ -899,7 +913,7 @@ export default function Visualization({
               </Html>
             )}
             <Suspense fallback={null}>
-              <SceneCamera roomWidth={roomWidth} roomLength={roomLength} wallHeight={wallHeight} orbitRef={orbitRef} />
+              <SceneCamera roomWidth={roomWidth} roomLength={roomLength} wallHeight={wallHeight} orbitRef={orbitRef} viewMode={viewMode} />
               <CameraSideTracker onChange={setCameraSide} />
               <ambientLight intensity={0.8} />
               <directionalLight position={[20, 30, 20]} intensity={1.8} castShadow shadow-mapSize={[2048, 2048]} />
@@ -1055,7 +1069,20 @@ export default function Visualization({
             </Suspense>
 
             <ContactShadows position={[0,0,0]} opacity={0.4} scale={500} blur={2.5} far={20} />
-            <OrbitControls ref={orbitRef} makeDefault enabled={orbitEnabled} minDistance={2} maxDistance={Infinity} maxPolarAngle={Math.PI / 2.1} dampingFactor={0.05} enableDamping />
+            <OrbitControls
+              ref={orbitRef}
+              makeDefault
+              enabled={orbitEnabled}
+              minDistance={2}
+              maxDistance={Infinity}
+              maxPolarAngle={viewMode === '2d' ? Math.PI / 2 : Math.PI / 2.1}
+              minPolarAngle={viewMode === '2d' ? Math.PI / 2 : 0}
+              enableRotate={viewMode === '3d'}
+              enablePan={true}
+              enableZoom={true}
+              dampingFactor={0.05}
+              enableDamping
+            />
           </Canvas>
         </div>
       </div>

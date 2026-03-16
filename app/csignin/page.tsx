@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "../../lib/utils";
 import { auth } from "@/lib/firebase"; 
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { toast } from "react-toastify";
 
 const Button = React.forwardRef(({ className, variant = "gold", isLoading, children, ...props }: any, ref) => {
   const variants: any = {
@@ -163,14 +164,17 @@ export default function OpulentiaSignIn() {
         setEmail("");
       }
       
+      toast.success("Signed in successfully.");
       router.push("/"); 
       
     } catch (err: any) {
       console.error("Firebase SignIn Error:", err);
       if (err?.code === "auth/invalid-credential") {
         setEmailError("Invalid registry email or credential.");
+        toast.error("Invalid email or password.");
       } else {
         setEmailError("The authentication service is currently unreachable.");
+        toast.error("Could not sign in. Please try again later.");
       }
       setIsLoading(false);
     } 

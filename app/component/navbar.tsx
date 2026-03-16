@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { toast } from "react-toastify";
 
 const Navbar = () => {
   const router = useRouter();
@@ -100,8 +101,10 @@ const Navbar = () => {
     try {
       await signOut(auth);
       setIsDropdownOpen(false);
+      toast.success("Signed out successfully.");
     } catch (error) {
       console.error("Error signing out:", error);
+      toast.error("Error signing out. Please try again.");
     }
   };
 

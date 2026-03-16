@@ -18,7 +18,7 @@ export function getCameraSide(x: number, z: number): CameraSide {
 
 type OrbitControlsRef = { target: { set: (x: number, y: number, z: number) => void }; update: () => void };
 
-export function SceneCamera({ roomWidth, roomLength, wallHeight, orbitRef }: { roomWidth: number; roomLength: number; wallHeight: number; orbitRef: React.RefObject<OrbitControlsRef> }) {
+export function SceneCamera({ roomWidth, roomLength, wallHeight, orbitRef, viewMode }: { roomWidth: number; roomLength: number; wallHeight: number; orbitRef: React.RefObject<OrbitControlsRef>; viewMode: '3d' | '2d'; }) {
   const { camera } = useThree();
 
   useEffect(() => {
@@ -26,8 +26,17 @@ export function SceneCamera({ roomWidth, roomLength, wallHeight, orbitRef }: { r
     const distance = maxDim * 0.9;
     const height = Math.max(wallHeight * 1.5, maxDim * 0.35);
 
-    camera.position.set(distance, height, distance);
-    camera.lookAt(0, 0, 0);
+    if (viewMode === '2d') {
+      // top-down orthographic-like view
+      camera.position.set(0, maxDim * 1.5, 0);
+      camera.up.set(0, 0, -1);
+      camera.lookAt(0, 0, 0);
+    } else {
+      camera.position.set(distance, height, distance);
+      camera.up.set(0, 1, 0);
+      camera.lookAt(0, 0, 0);
+    }
+
     // eslint-disable-next-line react-hooks/immutability
     camera.far = Math.max(200, maxDim * 10);
     camera.updateProjectionMatrix();
@@ -36,7 +45,7 @@ export function SceneCamera({ roomWidth, roomLength, wallHeight, orbitRef }: { r
       orbitRef.current.target.set(0, 0, 0);
       orbitRef.current.update();
     }
-  }, [roomWidth, roomLength, wallHeight, camera, orbitRef]);
+  }, [roomWidth, roomLength, wallHeight, camera, orbitRef, viewMode]);
 
   return null;
 }
