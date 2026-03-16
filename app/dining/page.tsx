@@ -33,7 +33,6 @@ Button.displayName = "Button";
 const DINING_PRODUCTS = [
   { id: 4, name: "Grand Dining Table", price: "Rs 119,990", oldPrice: "Rs 134,990", img: "/dining-table.jpg", rating: 5, category: "Tables", href: "/product/4" },
   { id: 5, name: "Oak Dining Chair", price: "Rs 68,500", oldPrice: "Rs 77,000", img: "/dining-chair.jpeg", rating: 4, category: "Chairs", href: "/product/5" },
-  { id: 6, name: "Luxury Pantry Cupboard", price: "Rs 84,900", oldPrice: "Rs 95,000", img: "/dining-cupboard.jpeg", rating: 5, category: "Storage", href: "/product/6" },
 ];
 
 const FEATURES = [

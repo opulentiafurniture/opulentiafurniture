@@ -44,7 +44,6 @@ type Product = {
 const BEDROOM_PRODUCTS: Product[] = [
   { id: 1, name: "Royal King Bed", price: "Rs 129,990", oldPrice: "Rs 145,000", img: "/bedroom-bed.jpeg", rating: 5, category: "Beds", href: "/product/1" },
   { id: 2, name: "Luxury Wardrobe Unit", price: "Rs 159,900", oldPrice: "Rs 175,000", img: "/bedroom-wardrobe.jpeg", rating: 5, category: "Wardrobes", href: "/product/2" },
-  { id: 3, name: "Elegant Dressing Table", price: "Rs 74,990", oldPrice: "Rs 84,000", img: "/bedroom-dresser.jpeg", rating: 4, category: "Dressers", href: "/product/3" },
 ];
 
 const FEATURES = [
