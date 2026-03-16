@@ -915,9 +915,44 @@ export default function Visualization({
                   className="w-8 h-8 p-0 border border-white rounded-sm"
                 />
               </div>
-              </div>
+
+              <button
+                onClick={() => {
+                  if (!selectedSceneItem) return;
+                  try {
+                    const key = 'opulentia_cart';
+                    const raw = localStorage.getItem(key) || '[]';
+                    const cart: any[] = JSON.parse(raw);
+                    const existing = cart.find((c) => c.id === selectedSceneItem.uniqueId);
+
+                    if (existing) {
+                      existing.qty = (existing.qty || 1) + 1;
+                    } else {
+                      cart.push({
+                        id: selectedSceneItem.uniqueId,
+                        name: selectedSceneItem.name || 'Item',
+                        price: Number(selectedSceneItem.price ?? 0),
+                        qty: 1,
+                        img: selectedSceneItem.image || selectedSceneItem.img || '',
+                      });
+                    }
+
+                    localStorage.setItem(key, JSON.stringify(cart));
+                    window.dispatchEvent(new Event('cartUpdated'));
+                    window.dispatchEvent(new CustomEvent('cartAdded', { detail: { name: selectedSceneItem.name } }));
+                    toast.success('Added to cart');
+                  } catch (err) {
+                    console.error('Failed to add to cart:', err);
+                    toast.error('Could not add to cart.');
+                  }
+                }}
+                className="px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-[#D4AF37] text-[#0A192F] rounded-sm"
+              >
+                Add to Cart
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
         {/* 3D CANVAS */}
         <div className={`absolute inset-0 z-0 bg-[#f1f5f9] ${showChrome ? 'pl-80 pr-72' : ''}`}>

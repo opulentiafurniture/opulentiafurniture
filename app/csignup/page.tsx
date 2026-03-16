@@ -188,6 +188,13 @@ export default function OpulentiaSignUp() {
           role: "user",
           createdAt: serverTimestamp(),
         });
+
+        // Ensure new users start with a clean cart in localStorage
+        try {
+          localStorage.removeItem("opulentia_cart");
+        } catch (error) {
+          console.warn("Could not clear cart on signup:", error);
+        }
       }
       
       router.push("/"); 

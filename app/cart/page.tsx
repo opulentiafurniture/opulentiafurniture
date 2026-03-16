@@ -23,24 +23,7 @@ const parsePrice = (price: unknown): number => {
   return 0;
 };
 
-const INITIAL_CART_ITEMS = [
-  {
-    id: 1,
-    name: "King sized bed",
-    variant: "Ivory",
-    price: 120000,
-    quantity: 2,
-    image: "/slide1.jpg",
-  },
-  {
-    id: 2,
-    name: "Royal velvet single sofa",
-    variant: "Red",
-    price: 132000,
-    quantity: 1,
-    image: "/sofa.png",
-  },
-];
+const INITIAL_CART_ITEMS: CartItem[] = [];
 
 type RawCartItem = {
   id: number;
@@ -89,12 +72,10 @@ export default function CartPage() {
 
       if (savedCart) {
         const parsed: RawCartItem[] = JSON.parse(savedCart);
-        const normalized = Array.isArray(parsed)
-          ? parsed.map(normalizeCartItem)
-          : INITIAL_CART_ITEMS;
+        const normalized = Array.isArray(parsed) ? parsed.map(normalizeCartItem) : [];
         setCartItems(normalized);
       } else {
-        setCartItems(INITIAL_CART_ITEMS);
+        setCartItems([]);
       }
     } catch (error) {
       console.error("Failed to load cart:", error);
