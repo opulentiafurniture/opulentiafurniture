@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { User, ShoppingCart, Search, LogOut, ChevronDown } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -10,6 +10,8 @@ import { toast } from "react-toastify";
 
 const Navbar = () => {
   const router = useRouter();
+  const pathname = usePathname();
+  const hideNavbar = Boolean(pathname?.toLowerCase().startsWith("/visualization"));
   const [user, setUser] = React.useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [cartCount, setCartCount] = React.useState(0);
@@ -140,7 +142,14 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="w-full flex flex-col sticky top-0 z-[100] shadow-2xl">
+    <nav
+      className={cn(
+        "w-full flex flex-col sticky top-0 z-[100] shadow-2xl overflow-hidden transition-all duration-500 ease-in-out",
+        hideNavbar
+          ? "-translate-y-full opacity-0 pointer-events-none max-h-0"
+          : "translate-y-0 opacity-100 max-h-[260px]"
+      )}
+    >
       <div className="h-2 w-full bg-[#D4AF37] border-b border-black/20" />
 
       <div className="h-20 bg-[#0A192F] flex items-center relative">

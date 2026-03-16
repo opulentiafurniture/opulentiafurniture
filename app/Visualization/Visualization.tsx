@@ -115,7 +115,7 @@ export default function Visualization({
   initialSceneItems = [],
   initialRoomConfig = {},
   initialCategory = 'living',
-  initialTab = 'furnish',
+  initialTab = 'build',
   catalogItems,
   showPageChrome = true,
   isEmbedded = false,
