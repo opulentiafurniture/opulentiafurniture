@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useState, useRef } from 'react';
+import React, { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Html, useGLTF, ContactShadows } from '@react-three/drei';
@@ -166,14 +166,14 @@ export default function Visualization({
   const highlightClass = (step: number) =>
     showTour && tourStep === step ? 'ring-4 ring-[#D4AF37]/60 shadow-[0_0_0_10px_rgba(212,175,55,0.35)]' : '';
 
-  const openTour = () => {
+  const openTour = useCallback(() => {
     prevFullscreen.current = isFullscreen;
     setIsFullscreen(false);
     setTourStep(0);
     setShowTour(true);
-  };
+  }, [isFullscreen]);
 
-  const closeTour = () => {
+  const closeTour = useCallback(() => {
     setShowTour(false);
     setIsFullscreen(prevFullscreen.current);
     try {
@@ -181,7 +181,7 @@ export default function Visualization({
     } catch {
       // ignore
     }
-  };
+  }, []);
 
   const nextTourStep = () => {
     if (tourStep < tourSteps.length - 1) {
@@ -199,6 +199,11 @@ export default function Visualization({
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
+
+  const [ambientIntensity, setAmbientIntensity] = useState(0.8);
+  const [directionalIntensity, setDirectionalIntensity] = useState(1.8);
+  const [directionalColor, setDirectionalColor] = useState('#ffffff');
+
   const [sceneItems, setSceneItems] = useState<VisualizationSceneItem[]>(initialSceneItems);
   const selectedSceneItem = React.useMemo(() => sceneItems.find((i) => i.uniqueId === selectedItem) ?? null, [sceneItems, selectedItem]);
   const [history, setHistory] = useState<VisualizationSnapshot[]>([]);
@@ -480,7 +485,7 @@ export default function Visualization({
     // Smoothly slide header/footer away and expand the viewer to fullscreen.
     const timeout = window.setTimeout(() => setIsFullscreen(true), 50);
     return () => window.clearTimeout(timeout);
-  }, []);
+  }, [openTour]);
 
   useEffect(() => {
     // Initialize undo/redo history
@@ -941,6 +946,51 @@ export default function Visualization({
                   </div>
                 ))
               )}
+
+              <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-xs font-black text-gray-600 uppercase">Lighting</div>
+                    <div className="text-[10px] text-gray-400">Works in both 2D and 3D view.</div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="text-[10px] font-bold text-gray-500">Ambient</div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    value={ambientIntensity}
+                    onChange={(e) => setAmbientIntensity(Number(e.target.value))}
+                    className="w-full accent-black"
+                  />
+                  <div className="text-[10px] text-gray-400">{ambientIntensity.toFixed(2)}</div>
+
+                  <div className="text-[10px] font-bold text-gray-500">Directional</div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={3}
+                    step={0.05}
+                    value={directionalIntensity}
+                    onChange={(e) => setDirectionalIntensity(Number(e.target.value))}
+                    className="w-full accent-black"
+                  />
+                  <div className="text-[10px] text-gray-400">{directionalIntensity.toFixed(2)}</div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-bold text-gray-500">Light Color</div>
+                    <input
+                      type="color"
+                      value={directionalColor}
+                      onChange={(e) => setDirectionalColor(e.target.value)}
+                      className="w-8 h-8 p-0 border border-gray-200 rounded"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <button
@@ -1092,8 +1142,14 @@ export default function Visualization({
             <Suspense fallback={null}>
               <SceneCamera roomWidth={roomWidth} roomLength={roomLength} wallHeight={wallHeight} orbitRef={orbitRef} viewMode={viewMode} />
               <CameraSideTracker onChange={setCameraSide} />
-              <ambientLight intensity={0.8} />
-              <directionalLight position={[20, 30, 20]} intensity={1.8} castShadow shadow-mapSize={[2048, 2048]} />
+              <ambientLight intensity={ambientIntensity} />
+              <directionalLight
+                position={[20, 30, 20]}
+                intensity={directionalIntensity}
+                color={directionalColor}
+                castShadow
+                shadow-mapSize={[2048, 2048]}
+              />
               <Environment preset="city" />
               
               {roomShape === 'l-shape' ? (
