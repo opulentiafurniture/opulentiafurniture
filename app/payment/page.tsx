@@ -6,7 +6,6 @@ import { Check, CreditCard, Banknote, ShieldCheck, Loader2, X } from "lucide-rea
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
 const formatCurrency = (amount: number) => {
@@ -415,7 +414,6 @@ export default function PaymentPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFDF9] font-sans text-[#0A192F] flex flex-col">
-      <Navbar />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12">
         <div className="flex items-center justify-center mb-16 max-w-xl mx-auto">

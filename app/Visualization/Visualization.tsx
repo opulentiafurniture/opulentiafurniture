@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Html, useGLTF, ContactShadows } from '@react-three/drei';
 import { Box3, Vector3, Shape } from 'three';
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -611,7 +610,6 @@ export default function Visualization({
 
       {showChrome && (
         <div className={`overflow-hidden transition-all duration-700 ${isFullscreen ? 'h-0' : 'h-16'}`}>
-          <Navbar />
         </div>
       )}
 

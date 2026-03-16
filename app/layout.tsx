@@ -4,6 +4,7 @@ import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 // 1. Import your new Chatbot
 import Chatbot from "./component/Chatbot"; // Adjust path as needed
+import Navbar from "./component/navbar";
 import { ToastContainer } from "react-toastify";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <Navbar />
         {children}
         <ToastContainer
           position="top-right"
@@ -33,6 +35,7 @@ export default function RootLayout({
           pauseOnHover
           theme="dark"
         />
+        <Chatbot />
         {/* 2. Add it here so it floats on every page! */}
       </body>
     </html>

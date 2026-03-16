@@ -143,7 +143,7 @@ const Navbar = () => {
     <nav className="w-full flex flex-col sticky top-0 z-[100] shadow-2xl">
       <div className="h-2 w-full bg-[#D4AF37] border-b border-black/20" />
 
-      <div className="h-20 bg-[#0A192F] flex items-center">
+      <div className="h-20 bg-[#0A192F] flex items-center relative">
         <div
           className="h-full px-8 flex items-center justify-center border-r border-white/10 relative overflow-hidden group cursor-pointer"
           onClick={() => router.push("/")}
@@ -155,7 +155,7 @@ const Navbar = () => {
           />
         </div>
 
-        <div className="flex-1 flex justify-center items-center gap-12">
+        <div className="flex-1 flex justify-center items-center gap-12 pr-[260px]">
           {navLinks.map((link) =>
             link.name === "Contact" ? (
               <button
@@ -180,7 +180,7 @@ const Navbar = () => {
           )}
         </div>
 
-        <div className="relative flex items-center gap-6 px-10">
+        <div className="absolute right-0 top-0 h-full w-[260px] flex items-center justify-end gap-6 px-10">
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -188,7 +188,7 @@ const Navbar = () => {
                 className="flex items-center gap-2 text-white hover:text-[#D4AF37] transition-colors p-2 rounded-sm hover:bg-white/5"
               >
                 <User size={22} strokeWidth={1.5} />
-                <span className="text-[11px] tracking-widest uppercase hidden md:block">
+                <span className="text-[11px] tracking-widest uppercase hidden md:block max-w-[90px] truncate">
                   {getDisplayName()}
                 </span>
                 <ChevronDown

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Star, ShoppingCart, Heart, ChevronRight } from 'lucide-react';
-import Navbar from "../../component/navbar";
 import Footer from "../../component/footer";
 import Visualization from "@/app/Visualization/Visualization";
 import { ALL_PRODUCTS } from "@/lib/product";
@@ -27,7 +26,6 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#0A192F]">
-      <Navbar />
 
       {/* BREADCRUMBS */}
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center gap-2 text-[10px] uppercase tracking-widest text-gray-400">

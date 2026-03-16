@@ -4,7 +4,6 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck, Sofa, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
 const Button = React.forwardRef(({ className, variant = "default", ...props }: any, ref: any) => {
@@ -57,7 +56,6 @@ const STATS = [
 export default function AboutUsPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-[#0A192F]">
-      <Navbar />
 
       <section className="relative h-[78vh] min-h-[520px] overflow-hidden">
         <img

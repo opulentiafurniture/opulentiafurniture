@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ShoppingCart, Heart, Star, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
 const Button = React.forwardRef(({ className, variant = "default", ...props }: any, ref: any) => {
@@ -175,7 +174,6 @@ const ProductCard = ({ product }: { product: Product }) => {
 export default function DiningRoomPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-[#0A192F]">
-      <Navbar />
 
       <section className="relative h-[85vh] min-h-[560px] overflow-hidden">
         <img

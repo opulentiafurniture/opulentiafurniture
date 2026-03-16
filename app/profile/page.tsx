@@ -10,7 +10,6 @@ import { cn } from "@/lib/utils";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy } from "firebase/firestore";
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
 const Button = React.forwardRef(({ className, variant = "gold", isLoading, children, ...props }: any, ref) => {
@@ -313,7 +312,6 @@ const renderSavedDesigns = () => (
 
   return (
     <div className="min-h-screen bg-[#030c1a] font-sans text-white selection:bg-[#D4AF37] selection:text-[#0A192F] flex flex-col">
-      <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-12 lg:py-20 flex flex-col lg:flex-row gap-12">
 

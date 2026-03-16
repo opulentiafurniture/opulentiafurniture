@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { ShoppingCart, Heart, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 import { ALL_PRODUCTS } from "@/lib/product";
 
@@ -132,7 +131,6 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#0A192F]">
-      <Navbar />
 
       <section className="max-w-7xl mx-auto px-6 py-16">
         <h1 className="text-4xl font-bold mb-4">Search Results</h1>

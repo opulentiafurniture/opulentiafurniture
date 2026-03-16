@@ -4,7 +4,6 @@ import * as React from "react";
 import { Minus, Plus, X, ArrowRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
 const formatCurrency = (amount: number) => {
@@ -135,7 +134,6 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFDF9] font-sans text-[#0A192F] flex flex-col">
-      <Navbar />
 
       <div className="bg-[#FFFDF9] border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4 text-sm flex items-center gap-2">

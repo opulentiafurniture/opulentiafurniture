@@ -5,7 +5,6 @@ import { ChevronRight, ShieldCheck, Truck, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 
 
@@ -94,9 +93,7 @@ export default function CheckoutPage() {
 
     return (
         <div className="min-h-screen bg-[#FFFDF9] font-sans text-[#0A192F] flex flex-col">
-            <Navbar />
 
-        
             <div className="bg-[#FFFDF9] border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-6 py-4 text-xs flex items-center gap-3 font-semibold uppercase tracking-widest">
                     <button onClick={() => router.push("/cart")} className="text-gray-400 hover:text-[#0A192F] transition-colors flex items-center gap-1">

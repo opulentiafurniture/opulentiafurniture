@@ -4,7 +4,6 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { ShoppingCart, ChevronRight, Star, Heart, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Navbar from "./component/navbar";
 import Footer from "./component/footer";
 import Chatbot from "./component/Chatbot";
 import { useRouter } from "next/navigation";
@@ -204,7 +203,6 @@ export default function OpulentiaHome() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#0A192F]">
-      <Navbar />
 
       <div className="w-full bg-white space-y-12 pb-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-1">
