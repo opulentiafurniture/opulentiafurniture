@@ -15,6 +15,8 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 interface FurnitureProps {
   url: string;
   position: [number, number, number];
+  scale: number;
+  color: string;
   mode: 'translate' | 'rotate' | 'scale';
   isSelected: boolean;
   onSelect: () => void;
@@ -26,7 +28,6 @@ interface FurnitureProps {
 }
 
 type CameraSide = 'north' | 'south' | 'east' | 'west';
-
 type RoomShape = 'square' | 'rectangle' | 'narrow' | 'studio' | 'l-shape' | 't-shape';
 
 type SceneItemType = {
@@ -36,6 +37,8 @@ type SceneItemType = {
   url: string;
   uniqueId: string;
   position: [number, number, number];
+  scale: number;
+  color: string;
 };
 
 type EditorSnapshot = {
@@ -288,13 +291,11 @@ function buildSegments(points: Array<{ x: number; z: number }>) {
   return segments;
 }
 
-/** * COMPONENTS */
-function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY, roomWidth, roomLength }: FurnitureProps) {
+function Furniture({ url, position, scale, color, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY, roomWidth, roomLength }: FurnitureProps) {
   const { scene } = useGLTF(url);
   const groupRef = useRef<Object3D>(null);
   const [transformObject, setTransformObject] = useState<Object3D | null>(null);
   const controlsRef = useRef<any>(null);
-  const globalScale = 2.0;
 
   const setGroupRef = useCallback((node: Object3D | null) => {
     groupRef.current = node;
@@ -303,6 +304,7 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
 
   const clonedScene = React.useMemo(() => {
     const clone = scene.clone(true);
+    const baseScale = 2.0;
 
     const box = new Box3().setFromObject(clone);
     const size = new Vector3();
@@ -311,7 +313,7 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
     box.getCenter(center);
 
     clone.position.sub(center);
-    clone.scale.multiplyScalar(globalScale);
+    clone.scale.multiplyScalar(baseScale * scale);
 
     const box2 = new Box3().setFromObject(clone);
     clone.position.y -= box2.min.y;
@@ -320,11 +322,28 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
       if (obj.isMesh) {
         obj.castShadow = true;
         obj.receiveShadow = true;
+
+        if (obj.material) {
+          const originalMaterial = obj.material;
+          const newMaterial = Array.isArray(originalMaterial)
+            ? originalMaterial.map((mat: any) => mat.clone())
+            : originalMaterial.clone();
+
+          if (Array.isArray(newMaterial)) {
+            newMaterial.forEach((mat: any) => {
+              if (mat.color) mat.color.set(color);
+            });
+          } else {
+            if (newMaterial.color) newMaterial.color.set(color);
+          }
+
+          obj.material = newMaterial;
+        }
       }
     });
 
     return clone;
-  }, [scene]);
+  }, [scene, scale, color]);
 
   useEffect(() => {
     const controls = controlsRef.current;
@@ -364,10 +383,7 @@ function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition
       <group
         ref={setGroupRef}
         position={[position[0], floorY, position[2]]}
-        onClick={(e: any) => {
-          e.stopPropagation();
-          onSelect();
-        }}
+        onClick={(e: any) => { e.stopPropagation(); onSelect(); }}
       >
         <primitive object={clonedScene} castShadow />
       </group>
@@ -382,14 +398,14 @@ const VisualizationPage = () => {
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
   const [cameraSide, setCameraSide] = useState<CameraSide>('south');
   const [userId, setUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'build' | 'furnish' | 'saved'>('furnish');
+  const [activeTab, setActiveTab] = useState<'build' | 'furnish' | 'saved'>('build');
   const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
   const [loadingDesigns, setLoadingDesigns] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [savingLayout, setSavingLayout] = useState(false);
   const [showSaveToast, setShowSaveToast] = useState(false);
 
-  const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
+  const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
   const [sceneItems, setSceneItems] = useState<SceneItemType[]>([]);
@@ -473,6 +489,30 @@ const VisualizationPage = () => {
     if (changes.wallColor !== undefined) setWallColor(changes.wallColor);
     if (changes.floorColor !== undefined) setFloorColor(changes.floorColor);
   }, [pushToUndo]);
+
+  const updateSelectedItemScale = (newScale: number) => {
+    if (!selectedItem) return;
+    pushToUndo();
+    setSceneItems(prev =>
+      prev.map(item =>
+        item.uniqueId === selectedItem
+          ? { ...item, scale: Math.max(0.3, Math.min(3, newScale)) }
+          : item
+      )
+    );
+  };
+
+  const updateSelectedItemColor = (newColor: string) => {
+    if (!selectedItem) return;
+    pushToUndo();
+    setSceneItems(prev =>
+      prev.map(item =>
+        item.uniqueId === selectedItem
+          ? { ...item, color: newColor }
+          : item
+      )
+    );
+  };
 
   const lShapeData = React.useMemo(() => {
     const armRatio = 0.6;
@@ -608,13 +648,19 @@ const VisualizationPage = () => {
     pushToUndo();
 
     const r = design.room || {};
+    const loadedItems = (design.sceneItems || []).map((item: any) => ({
+      ...item,
+      scale: item.scale ?? 1,
+      color: item.color ?? '#ffffff',
+    }));
+
     setRoomShape((r.shape || 'rectangle') as RoomShape);
     setRoomWidth(r.width || 10);
     setRoomLength(r.length || 10);
     setWallHeight(r.wallHeight || 4.5);
     setWallColor(r.wallColor || '#f8fafc');
     setFloorColor(r.floorColor || '#d4b895');
-    setSceneItems(design.sceneItems || []);
+    setSceneItems(loadedItems);
     setSelectedItem(null);
   };
 
@@ -646,6 +692,8 @@ const VisualizationPage = () => {
       ...item,
       uniqueId: `${item.id}-${Date.now()}`,
       position: [spawnX, 0, spawnZ],
+      scale: 1,
+      color: '#ffffff',
     };
 
     setSceneItems(prev => [...prev, newItem]);
@@ -725,7 +773,7 @@ const VisualizationPage = () => {
               className="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg transition-all shadow-sm active:scale-95"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 7H6L7 5H17L18 7H20C21.1046 7 22 7.89543 22 9V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V9C2 7.89543 2.89543 7 4 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 7H6L7 5H17L18 7H20C21.1046 7 22 7.89543 22 9V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V9C2 7.89543 2.89543 7 4 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 <path d="M12 17C14.2091 17 16 15.2091 16 13C16 10.7909 14.2091 9 12 9C9.79086 9 8 10.7909 8 13C8 15.2091 9.79086 17 12 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -781,7 +829,7 @@ const VisualizationPage = () => {
             className="w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg transition-all shadow-sm active:scale-95"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4 7H6L7 5H17L18 7H20C21.1046 7 22 7.89543 22 9V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V9C2 7.89543 2.89543 7 4 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 7H6L7 5H17L18 7H20C21.1046 7 22 7.89543 22 9V19C22 20.1046 21.1046 21 20 21H4C2.89543 21 2 20.1046 2 19V9C2 7.89543 2 7 4 7Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 17C14.2091 17 16 15.2091 16 13C16 10.7909 14.2091 9 12 9C9.79086 9 8 10.7909 8 13C8 15.2091 9.79086 17 12 17Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
@@ -1028,12 +1076,63 @@ const VisualizationPage = () => {
           </button>
         </div>
 
-        {selectedItem && (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-black p-1.5 rounded-full shadow-2xl flex items-center gap-1">
-            <button onClick={() => setTransformMode('translate')} className={`px-6 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'translate' ? 'bg-white text-black' : 'text-gray-400'}`}>MOVE</button>
-            <button onClick={() => setTransformMode('rotate')} className={`px-6 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'rotate' ? 'bg-white text-black' : 'text-gray-400'}`}>ROTATE</button>
-          </div>
-        )}
+        {selectedItem && (() => {
+          const currentItem = sceneItems.find(item => item.uniqueId === selectedItem);
+          if (!currentItem) return null;
+
+          return (
+            <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-black p-4 rounded-3xl shadow-2xl flex flex-col gap-4 min-w-[340px]">
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setTransformMode('translate')}
+                  className={`px-5 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'translate' ? 'bg-white text-black' : 'text-gray-400'}`}
+                >
+                  MOVE
+                </button>
+                <button
+                  onClick={() => setTransformMode('rotate')}
+                  className={`px-5 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'rotate' ? 'bg-white text-black' : 'text-gray-400'}`}
+                >
+                  ROTATE
+                </button>
+                <button
+                  onClick={() => setTransformMode('scale')}
+                  className={`px-5 py-2 text-[10px] font-black rounded-full transition-all ${transformMode === 'scale' ? 'bg-white text-black' : 'text-gray-400'}`}
+                >
+                  SCALE
+                </button>
+              </div>
+
+              <div className="bg-white rounded-2xl p-4 space-y-4">
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-gray-500 uppercase">Size</span>
+                    <span className="text-[10px] font-mono text-gray-400">{currentItem.scale.toFixed(1)}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.3"
+                    max="3"
+                    step="0.1"
+                    value={currentItem.scale}
+                    onChange={(e) => updateSelectedItemScale(Number(e.target.value))}
+                    className="w-full accent-black h-1"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-gray-500 uppercase">Colour</span>
+                  <input
+                    type="color"
+                    value={currentItem.color}
+                    onChange={(e) => updateSelectedItemColor(e.target.value)}
+                    className="w-10 h-10 p-0 border-0 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="absolute inset-0 z-0 pl-80 pr-72 bg-[#f1f5f9]">
           <div className="fixed top-4 left-4 z-[90]">
@@ -1197,6 +1296,8 @@ const VisualizationPage = () => {
                   key={item.uniqueId}
                   url={item.url}
                   position={item.position}
+                  scale={item.scale}
+                  color={item.color}
                   mode={transformMode}
                   isSelected={selectedItem === item.uniqueId}
                   onSelect={() => setSelectedItem(item.uniqueId)}
