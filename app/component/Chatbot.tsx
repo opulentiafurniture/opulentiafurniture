@@ -37,8 +37,10 @@ export default function OpulentiaChatbot() {
 
     const decodeHtmlEntities = (text: string) =>
         text
+            .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+            .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)))
             .replace(/&quot;/g, '"')
-            .replace(/&apos;/g, "'")
+            .replace(/&apos;|&#39;/g, "'")
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>')
             .replace(/&amp;/g, '&');
