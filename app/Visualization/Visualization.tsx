@@ -134,6 +134,67 @@ export default function Visualization({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [savingLayout, setSavingLayout] = useState(false);
 
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const prevFullscreen = useRef<boolean>(false);
+  const tourSteps = React.useMemo(
+    () => [
+      {
+        title: 'Welcome to Visualizer',
+        description:
+          'This is your 3D design studio. Use the “Furniture” tab to add items, then drag/rotate them in the scene.',
+      },
+      {
+        title: 'Scene Controls',
+        description:
+          'Use the bottom toolbar to switch between MOVE/ROTATE modes, change view (2D/3D), and adjust item color.',
+      },
+      {
+        title: 'Save & Snapshots',
+        description:
+          'Use the top bar to take a snapshot, undo/redo changes, or save your design to your account.',
+      },
+      {
+        title: 'Need help later?',
+        description:
+          'You can always reopen this walkthrough using the question mark button in the bottom-left corner.',
+      },
+    ],
+    []
+  );
+
+  const highlightClass = (step: number) =>
+    showTour && tourStep === step ? 'ring-4 ring-[#D4AF37]/60 shadow-[0_0_0_10px_rgba(212,175,55,0.35)]' : '';
+
+  const openTour = () => {
+    prevFullscreen.current = isFullscreen;
+    setIsFullscreen(false);
+    setTourStep(0);
+    setShowTour(true);
+  };
+
+  const closeTour = () => {
+    setShowTour(false);
+    setIsFullscreen(prevFullscreen.current);
+    try {
+      localStorage.setItem('opulentia_visualization_tour_seen', 'true');
+    } catch {
+      // ignore
+    }
+  };
+
+  const nextTourStep = () => {
+    if (tourStep < tourSteps.length - 1) {
+      setTourStep(tourStep + 1);
+    } else {
+      closeTour();
+    }
+  };
+
+  const prevTourStep = () => {
+    setTourStep(Math.max(0, tourStep - 1));
+  };
+
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate'>('translate');
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [orbitEnabled, setOrbitEnabled] = useState(true);
@@ -406,6 +467,16 @@ export default function Visualization({
 
   useEffect(() => {
     setMounted(true);
+
+    try {
+      const seen = localStorage.getItem('opulentia_visualization_tour_seen');
+      if (!seen) {
+        setTimeout(() => openTour(), 800);
+      }
+    } catch {
+      // ignore
+    }
+
     // Smoothly slide header/footer away and expand the viewer to fullscreen.
     const timeout = window.setTimeout(() => setIsFullscreen(true), 50);
     return () => window.clearTimeout(timeout);
@@ -615,7 +686,7 @@ export default function Visualization({
 
       {/* Top controls (Snapshot/Save) */}
       {showChrome && !isFullscreen && (
-        <div className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0">
+        <div className={`w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0 ${highlightClass(2)}`}>
           <div className="flex gap-3">
               <button
                 onClick={handleScreenshot}
@@ -665,7 +736,7 @@ export default function Visualization({
 
       
       {showChrome && (
-        <div className="w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0">
+        <div className={`w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0 ${highlightClass(2)}`}>
           <div className="flex gap-3">
               <button
                 onClick={handleScreenshot}
@@ -721,7 +792,12 @@ export default function Visualization({
             <div className="flex items-center p-3 border-b border-gray-100 gap-2">
               <button onClick={() => router.back()} className="px-2 py-2 bg-black text-white text-[10px] font-black rounded-lg shadow-sm hover:bg-black/90">←</button>
               <button onClick={() => setActiveTab('build')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'build' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Build</button>
-              <button onClick={() => setActiveTab('furnish')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'furnish' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Furniture</button>
+              <button
+                onClick={() => setActiveTab('furnish')}
+                className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'furnish' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'} ${highlightClass(0)}`}
+              >
+                Furniture
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
@@ -883,7 +959,7 @@ export default function Visualization({
 
         {/* FLOATING TOOLS */}
         {selectedItem && (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-black p-4 rounded-md shadow-2xl flex flex-col items-center gap-2">
+          <div className={`absolute bottom-12 left-1/2 -translate-x-1/2 z-20 bg-black p-4 rounded-md shadow-2xl flex flex-col items-center gap-2 ${highlightClass(1)}`}>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleUndo}
@@ -964,6 +1040,14 @@ export default function Visualization({
             </div>
           </div>
         )}
+
+        <button
+          onClick={openTour}
+          className={`fixed bottom-8 left-8 z-[90] h-12 w-12 rounded-full bg-black/80 text-white hover:bg-black shadow-lg flex items-center justify-center ${highlightClass(3)}`}
+          aria-label="Open walkthrough"
+        >
+          ?
+        </button>
 
         {/* 3D CANVAS */}
         <div className={`absolute inset-0 z-0 bg-[#f1f5f9] ${showChrome ? 'pl-80 pr-72' : ''}`}>
@@ -1179,6 +1263,40 @@ export default function Visualization({
           </Canvas>
         </div>
       </div>
+
+      {showTour && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-6">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-6 relative">
+            <h3 className="text-lg font-bold mb-2">{tourSteps[tourStep].title}</h3>
+            <p className="text-sm text-gray-700 mb-6">{tourSteps[tourStep].description}</p>
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={closeTour}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Skip
+              </button>
+              <div className="text-xs text-gray-500">Step {tourStep + 1}/{tourSteps.length}</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={prevTourStep}
+                  disabled={tourStep === 0}
+                  className="px-3 py-2 rounded-lg border text-xs disabled:opacity-40"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={nextTourStep}
+                  className="px-3 py-2 rounded-lg bg-black text-white text-xs"
+                >
+                  {tourStep === tourSteps.length - 1 ? 'Done' : 'Next'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={`overflow-hidden transition-all duration-700 ${isFullscreen ? 'h-0' : 'h-16'}`}>
         <Footer />
       </div>
