@@ -8,6 +8,8 @@ import Navbar from "./component/navbar";
 import Footer from "./component/footer";
 import Chatbot from "./component/Chatbot";
 import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 type ButtonVariant = "default" | "outline";
 
@@ -183,6 +185,22 @@ const ProductCard = ({ product }: { product: Product }) => {
 
 export default function OpulentiaHome() {
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
+
+  React.useEffect(() => {
+    const tryRedirect = (user: any) => {
+      if (user?.email?.toLowerCase?.() === "admin@opulentia.com") {
+        setIsRedirecting(true);
+        router.replace("/Visualization");
+      }
+    };
+
+    tryRedirect(auth.currentUser);
+    const unsub = onAuthStateChanged(auth, tryRedirect);
+    return () => unsub();
+  }, [router]);
+
+  if (isRedirecting) return null;
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#0A192F]">

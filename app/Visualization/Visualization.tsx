@@ -8,7 +8,7 @@ import { Box3, Vector3, Shape } from 'three';
 import Navbar from "../component/navbar";
 import Footer from "../component/footer";
 import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { ALL_PRODUCTS } from "@/lib/product";
@@ -128,6 +128,7 @@ export default function Visualization({
   const [isCanvasLoading, setIsCanvasLoading] = useState(true);
   const [cameraSide, setCameraSide] = useState<CameraSide>('south');
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState<'build' | 'furnish' | 'saved'>(initialTab);
   const [savedDesigns, setSavedDesigns] = useState<any[]>([]);
   const [loadingDesigns, setLoadingDesigns] = useState(false);
@@ -541,6 +542,7 @@ export default function Visualization({
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUserId(u ? u.uid : null);
+      setIsAdmin(u?.email?.toLowerCase?.() === "admin@opulentia.com");
     });
     return () => unsub();
   }, []);
@@ -586,6 +588,17 @@ export default function Visualization({
       }
     } finally {
       setSavingLayout(false);
+    }
+  };
+
+  const handleAdminSignOut = async () => {
+    try {
+      await signOut(auth);
+      toast.success('Signed out successfully.');
+      router.replace('/');
+    } catch (err) {
+      console.error('Sign out failed', err);
+      toast.error('Could not sign out. Please try again.');
     }
   };
 
@@ -957,13 +970,22 @@ export default function Visualization({
         {/* 3D CANVAS */}
         <div className={`absolute inset-0 z-0 bg-[#f1f5f9] ${showChrome ? 'pl-80 pr-72' : ''}`}>
           {!isEmbedded && (
-            <div className="fixed top-4 left-4 z-[90]">
-              <button
-                onClick={() => (onBack ? onBack() : router.back())}
-                className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
-              >
-                ←
-              </button>
+            <div className="fixed top-4 left-4 z-[90] flex items-center gap-2">
+              {!isAdmin ? (
+                <button
+                  onClick={() => (onBack ? onBack() : router.back())}
+                  className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
+                >
+                  ←
+                </button>
+              ) : (
+                <button
+                  onClick={handleAdminSignOut}
+                  className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
+                >
+                  Sign out
+                </button>
+              )}
             </div>
           )}
           <Canvas 
