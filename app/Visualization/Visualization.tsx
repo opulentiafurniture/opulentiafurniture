@@ -420,14 +420,14 @@ export default function Visualization({
       const snap = await getDocs(q);
       const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setSavedDesigns(rows);
-      setActiveTab('saved');
+      setActiveTabSafe('saved');
       toast.success('Loaded saved designs.');
     } catch (e: any) {
       console.error("Failed to load designs:", e);
       if (e?.message?.toLowerCase().includes('missing or insufficient permissions')) {
         const local = loadLocalDesigns(userId);
         setSavedDesigns(local);
-        setActiveTab('saved');
+        setActiveTabSafe('saved');
         toast.info('Unable to load designs from the server; loaded local designs instead.');
       } else {
         toast.error(`Could not load designs: ${e?.message || e}`);
@@ -666,15 +666,26 @@ export default function Visualization({
     }
   };
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
   const handleAdminSignOut = async () => {
     try {
+      setShowLogoutConfirm(false);
       await signOut(auth);
-      toast.success('Signed out successfully.');
+      toast.info('Admin Mode turned off');
       router.replace('/');
     } catch (err) {
       console.error('Sign out failed', err);
       toast.error('Could not sign out. Please try again.');
     }
+  };
+
+  const handleAdminBack = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const setActiveTabSafe = (tab: 'build' | 'furnish' | 'saved') => {
+    setActiveTab(tab);
   };
 
   if (!mounted) return null;
@@ -740,7 +751,7 @@ export default function Visualization({
       )}
 
       
-      {showChrome && (
+      {showChrome && isFullscreen && (
         <div className={`w-full h-16 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-8 z-20 shrink-0 ${highlightClass(2)}`}>
           <div className="flex gap-3">
               <button
@@ -785,6 +796,13 @@ export default function Visualization({
                   </svg>
                 )}
               </button>
+              <button
+                onClick={openTour}
+                title="Open walkthrough"
+                className={`w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg transition-all shadow-sm active:scale-95 ${highlightClass(3)}`}
+              >
+                ?
+              </button>
           </div>
         </div>
       )}
@@ -795,10 +813,27 @@ export default function Visualization({
         {showChrome && (
           <div className="absolute top-0 left-0 w-80 h-full bg-white/95 backdrop-blur-md border-r border-gray-200 z-10 flex flex-col shadow-2xl">
             <div className="flex items-center p-3 border-b border-gray-100 gap-2">
-              <button onClick={() => router.back()} className="px-2 py-2 bg-black text-white text-[10px] font-black rounded-lg shadow-sm hover:bg-black/90">←</button>
-              <button onClick={() => setActiveTab('build')} className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'build' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}>Build</button>
               <button
-                onClick={() => setActiveTab('furnish')}
+                onClick={() => {
+                  if (isAdmin) {
+                    handleAdminBack();
+                  } else {
+                    router.back();
+                  }
+                }}
+                className="px-2 py-2 bg-black text-white text-[10px] font-black rounded-lg shadow-sm hover:bg-black/90"
+                title={isAdmin ? 'Exit admin mode' : 'Back'}
+              >
+                ←
+              </button>
+              <button
+                onClick={() => setActiveTabSafe('build')}
+                className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'build' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'}`}
+              >
+                Build
+              </button>
+              <button
+                onClick={() => setActiveTabSafe('furnish')}
                 className={`flex-1 py-2 text-xs font-bold rounded ${activeTab === 'furnish' ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 transition-all'} ${highlightClass(0)}`}
               >
                 Furniture
@@ -1091,33 +1126,23 @@ export default function Visualization({
           </div>
         )}
 
-        <button
-          onClick={openTour}
-          className={`fixed bottom-8 left-8 z-[90] h-12 w-12 rounded-full bg-black/80 text-white hover:bg-black shadow-lg flex items-center justify-center ${highlightClass(3)}`}
-          aria-label="Open walkthrough"
-        >
-          ?
-        </button>
-
         {/* 3D CANVAS */}
         <div className={`absolute inset-0 z-0 bg-[#f1f5f9] ${showChrome ? 'pl-80 pr-72' : ''}`}>
           {!isEmbedded && (
             <div className="fixed top-4 left-4 z-[90] flex items-center gap-2">
-              {!isAdmin ? (
-                <button
-                  onClick={() => (onBack ? onBack() : router.back())}
-                  className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
-                >
-                  ←
-                </button>
-              ) : (
-                <button
-                  onClick={handleAdminSignOut}
-                  className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
-                >
-                  Sign out
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  if (isAdmin) {
+                    handleAdminSignOut();
+                  } else {
+                    onBack ? onBack() : router.back();
+                  }
+                }}
+                className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg shadow-2xl border border-white/20 hover:bg-black/90"
+                title={isAdmin ? 'Exit admin mode' : 'Back'}
+              >
+                ←
+              </button>
             </div>
           )}
           <Canvas 
@@ -1348,6 +1373,29 @@ export default function Visualization({
                   {tourStep === tourSteps.length - 1 ? 'Done' : 'Next'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/40 p-6">
+          <div className="max-w-sm w-full bg-white rounded-2xl shadow-2xl p-6">
+            <h3 className="text-lg font-bold mb-2">Confirm Logout</h3>
+            <p className="text-sm text-gray-700 mb-6">Do you really want to log out from store mode?</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                No
+              </button>
+              <button
+                onClick={handleAdminSignOut}
+                className="px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-black/90"
+              >
+                Yes
+              </button>
             </div>
           </div>
         </div>

@@ -3,12 +3,12 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { TransformControls, useGLTF } from '@react-three/drei';
-import { Object3D, Box3, Vector3, MeshStandardMaterial, MathUtils, CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
+import { Object3D, Box3, Vector3, Mesh, MeshStandardMaterial, MathUtils, CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
 
 export type CameraSide = 'north' | 'south' | 'east' | 'west';
 
 
-type MeshLike = Object3D & { isMesh?: boolean; castShadow?: boolean; receiveShadow?: boolean };
+type MeshLike = Mesh;
 
 export function getCameraSide(x: number, z: number): CameraSide {
   const absX = Math.abs(x);
@@ -287,10 +287,12 @@ export function Furniture({ url, position, mode, isSelected, onSelect, onUpdateP
     clonedScene.traverse((obj: Object3D) => {
       const mesh = obj as MeshLike;
       if (!mesh.isMesh) return;
-      if (Array.isArray(mesh.material)) {
-        mesh.material.forEach(applyColor);
+
+      const material = mesh.material;
+      if (Array.isArray(material)) {
+        material.forEach(applyColor);
       } else {
-        applyColor(mesh.material);
+        applyColor(material);
       }
     });
   }, [clonedScene, color]);
