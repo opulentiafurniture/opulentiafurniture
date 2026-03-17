@@ -1103,7 +1103,8 @@ export default function Visualization({
                       cart.push({
                         id: selectedSceneItem.uniqueId,
                         name: selectedSceneItem.name || 'Item',
-                        price: Number(selectedSceneItem.price ?? 0),
+                        // Keep the original price string (e.g. "Rs 129,990") so the cart page can parse it correctly
+                        price: selectedSceneItem.price ?? 0,
                         qty: 1,
                         img: selectedSceneItem.image || selectedSceneItem.img || '',
                       });
