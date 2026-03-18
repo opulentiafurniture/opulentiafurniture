@@ -4,7 +4,8 @@ import React, { Suspense, useEffect, useState, useRef, useCallback } from 'react
 import { useRouter } from 'next/navigation';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Html, useGLTF, ContactShadows } from '@react-three/drei';
-import { Box3, Vector3, Shape } from 'three';
+import { Box3, Vector3 } from 'three';
+import { buildShape, buildSegments, LoadingLogo } from './visualizationUtils';
 import Footer from "../component/footer";
 import { auth, db } from "@/lib/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -12,11 +13,13 @@ import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { toast } from "react-toastify";
 import { ALL_PRODUCTS } from "@/lib/product";
 import { CameraSide, SceneCamera, CameraSideTracker, RoomWalls, getCameraSide, WallSegment, createWoodTexture, Furniture } from "./Scene3D";
+import { addToCart } from "@/lib/cart";
 
 export type VisualizationSceneItem = {
   uniqueId: string;
   url: string;
   position: [number, number, number];
+  rotation?: [number, number, number];
   name: string;
   price?: string;
   // Optional styling applied to the model
@@ -80,34 +83,6 @@ function ModelThumbnail({ url }: { url: string }) {
       </Canvas>
     </div>
   );
-}
-
-function LoadingLogo({ className }: { className?: string }) {
-  return (
-    <div className={`loading-logo ${className || ''}`}>
-      <img src="/logo-no-bg.png" alt="Loading" className="w-12 h-12 object-contain" />
-    </div>
-  );
-}
-
-function buildShape(points: Array<{ x: number; z: number }>) {
-  const shape = new Shape();
-  shape.moveTo(points[0].x, points[0].z);
-  for (let i = 1; i < points.length; i++) {
-    shape.lineTo(points[i].x, points[i].z);
-  }
-  shape.closePath();
-  return shape;
-}
-
-function buildSegments(points: Array<{ x: number; z: number }>) {
-  const segments: Array<{ x1: number; z1: number; x2: number; z2: number }> = [];
-  for (let i = 0; i < points.length; i++) {
-    const p1 = points[i];
-    const p2 = points[(i + 1) % points.length];
-    segments.push({ x1: p1.x, z1: p1.z, x2: p2.x, z2: p2.z });
-  }
-  return segments;
 }
 
 // The 3D scene rendering is handled by shared components in Scene3D.tsx
@@ -358,7 +333,10 @@ export default function Visualization({
       "Royal Velvet Sofa": "/models/Sofa.glb",
       "Grand Dining Table": "/models/FTable.glb",
       "Marble Coffee Table": "/models/CoolTable.glb",
-      "Modern Bookshelf": "/models/WoodChair.glb",
+      "Modern Bookshelf": "/models/BookShelf.glb",
+      "Rustic Accent Chair": "/models/WoodChair.glb",
+      "Modern Floor Lamp": "/models/Lamp.glb",
+      "Cool Desk Lamp": "/models/CoolLamp.glb",
     };
     return map[name] ?? "/models/WoodChair.glb";
   };
@@ -376,7 +354,7 @@ export default function Visualization({
       ...p,
       url: p.modelUrl ?? getDefaultModelUrl(p.name),
     })),
-    decoration: ALL_PRODUCTS.filter(p => ['Shelf'].includes(p.category)).map(p => ({
+    decoration: ALL_PRODUCTS.filter(p => ['Shelf', 'Lighting'].includes(p.category)).map(p => ({
       ...p,
       url: p.modelUrl ?? getDefaultModelUrl(p.name),
     })),
@@ -439,7 +417,11 @@ export default function Visualization({
 
   const applyDesign = (design: any) => {
     const r = design.room || {};
-    const nextScene = design.sceneItems || [];
+    const nextScene = (design.sceneItems || []).map((item: any) => ({
+      ...item,
+      position: item.position || [0, 0, 0],
+      rotation: item.rotation || [0, 0, 0],
+    }));
     const nextRoomShape = r.shape || 'rectangle';
     const nextRoomWidth = r.width || 10;
     const nextRoomLength = r.length || 10;
@@ -604,6 +586,7 @@ export default function Visualization({
       ...item,
       uniqueId: `${item.id}-${Date.now()}`,
       position: [spawnX, 0, spawnZ],
+      rotation: [0, 0, 0],
       color: '#ffffff',
     };
 
@@ -1092,27 +1075,13 @@ export default function Visualization({
                 onClick={() => {
                   if (!selectedSceneItem) return;
                   try {
-                    const key = 'opulentia_cart';
-                    const raw = localStorage.getItem(key) || '[]';
-                    const cart: any[] = JSON.parse(raw);
-                    const existing = cart.find((c) => c.id === selectedSceneItem.uniqueId);
-
-                    if (existing) {
-                      existing.qty = (existing.qty || 1) + 1;
-                    } else {
-                      cart.push({
-                        id: selectedSceneItem.uniqueId,
-                        name: selectedSceneItem.name || 'Item',
-                        // Keep the original price string (e.g. "Rs 129,990") so the cart page can parse it correctly
-                        price: selectedSceneItem.price ?? 0,
-                        qty: 1,
-                        img: selectedSceneItem.image || selectedSceneItem.img || '',
-                      });
-                    }
-
-                    localStorage.setItem(key, JSON.stringify(cart));
-                    window.dispatchEvent(new Event('cartUpdated'));
-                    window.dispatchEvent(new CustomEvent('cartAdded', { detail: { name: selectedSceneItem.name } }));
+                    addToCart({
+                      id: selectedSceneItem.uniqueId,
+                      name: selectedSceneItem.name || 'Item',
+                      // Keep the original price string (e.g. "Rs 129,990") so the cart page can parse it correctly
+                      price: selectedSceneItem.price ?? 0,
+                      img: selectedSceneItem.image || selectedSceneItem.img || '',
+                    });
                     toast.success('Added to cart');
                   } catch (err) {
                     console.error('Failed to add to cart:', err);
@@ -1309,6 +1278,7 @@ export default function Visualization({
                   key={item.uniqueId}
                   url={item.url} 
                   position={item.position} 
+                  rotation={item.rotation}
                   mode={transformMode}
                   isSelected={selectedItem === item.uniqueId}
                   onSelect={() => setSelectedItem(item.uniqueId)}
@@ -1319,6 +1289,11 @@ export default function Visualization({
                   color={item.color}
                   onUpdatePosition={(newPos) => {
                     const nextScene = sceneItems.map(i => i.uniqueId === item.uniqueId ? { ...i, position: newPos } : i);
+                    setSceneItems(nextScene);
+                    pushHistory(getSnapshot({ sceneItems: nextScene }));
+                  }}
+                  onUpdateRotation={(newRot) => {
+                    const nextScene = sceneItems.map(i => i.uniqueId === item.uniqueId ? { ...i, rotation: newRot } : i);
                     setSceneItems(nextScene);
                     pushHistory(getSnapshot({ sceneItems: nextScene }));
                   }}

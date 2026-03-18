@@ -5,5 +5,8 @@ export const ALL_PRODUCTS = [
     { id: 5, name: "Oak Dining Chair", price: "Rs 68,500", oldPrice: "Rs 77,000", img: "/dining-chair.jpeg", rating: 4, category: "Chairs", modelUrl: "/models/WoodChairFTable.glb" },
     { id: 7, name: "Royal Velvet Sofa", price: "Rs 89,990", oldPrice: "Rs 99,990", img: "/sofa.jpg", rating: 5, category: "Sofas", modelUrl: "/models/Sofa.glb" },
     { id: 8, name: "Modern Bookshelf", price: "Rs 42,500", oldPrice: "Rs 49,900", img: "/bookshelf.jpg", rating: 4, category: "Shelf", modelUrl: "/models/BookShelf.glb" },
-    { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables", modelUrl: "/models/CoolTable.glb" }
-  ];
+    { id: 9, name: "Marble Coffee Table", price: "Rs 34,900", oldPrice: "Rs 41,000", img: "/coffee_table.jpeg", rating: 5, category: "Tables", modelUrl: "/models/CoolTable.glb" },
+    { id: 10, name: "Rustic Accent Chair", price: "Rs 39,900", oldPrice: "Rs 49,900", img: "/dining-chair.jpeg", rating: 4, category: "Chairs", modelUrl: "/models/WoodChair.glb" },
+    { id: 11, name: "Modern Floor Lamp", price: "Rs 14,500", oldPrice: "Rs 18,000", img: "/living-feature.jpg", rating: 4, category: "Lighting", modelUrl: "/models/Lamp.glb" },
+    { id: 12, name: "Cool Desk Lamp", price: "Rs 12,900", oldPrice: "Rs 15,000", img: "/living-feature.jpg", rating: 4, category: "Lighting", modelUrl: "/models/CoolLamp.glb" },
+];

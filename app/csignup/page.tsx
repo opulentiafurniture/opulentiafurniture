@@ -6,8 +6,7 @@ import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation"; 
 import { cn } from "../../lib/utils";
 import { auth, db } from "@/lib/firebase"; 
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { registerUser } from "@/lib/auth";
 
 const Button = React.forwardRef(({ className, variant = "gold", isLoading, children, ...props }: any, ref) => {
   const variants: any = {
@@ -173,32 +172,16 @@ export default function OpulentiaSignUp() {
     setIsLoading(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
-          displayName: name.trim()
-        });
+      await registerUser({ auth, db, email, password, name });
 
-        // Save profile data into Firestore so the profile page can reliably display the user name
-        await setDoc(doc(db, "users", userCredential.user.uid), {
-          name: name.trim(),
-          displayName: name.trim(),
-          email,
-          role: "user",
-          createdAt: serverTimestamp(),
-        });
-
-        // Ensure new users start with a clean cart in localStorage
-        try {
-          localStorage.removeItem("opulentia_cart");
-        } catch (error) {
-          console.warn("Could not clear cart on signup:", error);
-        }
+      // Ensure new users start with a clean cart in localStorage
+      try {
+        localStorage.removeItem("opulentia_cart");
+      } catch (error) {
+        console.warn("Could not clear cart on signup:", error);
       }
-      
-      router.push("/"); 
-      
+
+      router.push("/");
     } catch (err: any) {
       console.error("Firebase SignUp Error:", err);
       if (err?.code === "auth/email-already-in-use") {
@@ -209,7 +192,8 @@ export default function OpulentiaSignUp() {
         setEmailError("The authentication service is currently unreachable.");
       }
       setIsLoading(false);
-    } 
+    }
+
   };
 
   return (

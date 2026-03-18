@@ -9,6 +9,7 @@ import Chatbot from "./component/Chatbot";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { addToCart } from "@/lib/cart";
 
 type ButtonVariant = "default" | "outline";
 
@@ -93,33 +94,15 @@ const ProductCard = ({ product }: { product: Product }) => {
             title="Add to cart"
             onClick={(e) => {
               e.stopPropagation();
-              const key = "opulentia_cart";
               try {
-                const raw = localStorage.getItem(key) || "[]";
-                const cart: any[] = JSON.parse(raw);
-                const existing = cart.find((item) => item.id === product.id);
-
-                if (existing) {
-                  existing.qty = (existing.qty || 1) + 1;
-                } else {
-                  cart.push({
-                    id: product.id,
-                    qty: 1,
-                    name: product.name,
-                    price: product.price,
-                    img: product.img,
-                  });
-                }
-
-                localStorage.setItem(key, JSON.stringify(cart));
-                window.dispatchEvent(new Event("cartUpdated"));
-                window.dispatchEvent(
-                  new CustomEvent("cartAdded", {
-                    detail: { name: product.name },
-                  })
-                );
+                addToCart({
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  img: product.img,
+                });
               } catch (err) {
-                console.error("Cart error:", err);
+                console.error("Add to cart error:", err);
               }
             }}
           >

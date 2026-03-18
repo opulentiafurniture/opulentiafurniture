@@ -16,7 +16,6 @@ export default function OpulentiaChatbot() {
     const [isTyping, setIsTyping] = React.useState(false);
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
     
-    // Generate a unique session ID once when the component mounts
     const [sessionId] = React.useState(() => `sid-${Math.random().toString(36).substr(2, 9)}`);
 
     const [messages, setMessages] = React.useState<Message[]>([
@@ -127,11 +126,7 @@ export default function OpulentiaChatbot() {
         setIsTyping(true);
 
         try {
-            // Ensure this is your PRODUCTION URL from the n8n Webhook node
             const N8N_URL = "https://opulentia.app.n8n.cloud/webhook/chat";
-            
-
-
             const response = await fetch(N8N_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

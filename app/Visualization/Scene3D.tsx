@@ -213,10 +213,12 @@ export function createWoodTexture() {
 export interface FurnitureProps {
   url: string;
   position: [number, number, number];
+  rotation?: [number, number, number];
   mode: 'translate' | 'rotate';
   isSelected: boolean;
   onSelect: () => void;
   onUpdatePosition: (newPos: [number, number, number]) => void;
+  onUpdateRotation: (newRot: [number, number, number]) => void;
   setOrbitEnabled: (enabled: boolean) => void;
   floorY: number;
   roomWidth: number;
@@ -226,7 +228,7 @@ export interface FurnitureProps {
 }
 
 // After
-export function Furniture({ url, position, mode, isSelected, onSelect, onUpdatePosition, setOrbitEnabled, floorY, roomWidth, roomLength, color }: FurnitureProps) {
+export function Furniture({ url, position, rotation, mode, isSelected, onSelect, onUpdatePosition, onUpdateRotation, setOrbitEnabled, floorY, roomWidth, roomLength, color }: FurnitureProps) {
   const { scene } = useGLTF(url);
   const groupRef = useRef<Object3D>(null);
   const [transformObject, setTransformObject] = useState<Object3D | null>(null);
@@ -313,7 +315,7 @@ export function Furniture({ url, position, mode, isSelected, onSelect, onUpdateP
           ref={controlsRef}
           object={transformObject}
           mode={mode}
-          showY={mode !== 'translate'}
+          showY={true}
           translationSnap={0.1}
           rotationSnap={Math.PI / 8}
           onMouseUp={() => {
@@ -324,11 +326,19 @@ export function Furniture({ url, position, mode, isSelected, onSelect, onUpdateP
               const maxZ = roomLength / 2 - padding;
               const clampedX = Math.min(Math.max(groupRef.current.position.x, -maxX), maxX);
               const clampedZ = Math.min(Math.max(groupRef.current.position.z, -maxZ), maxZ);
+              const clampedY = Math.max(groupRef.current.position.y, floorY);
 
               groupRef.current.position.x = clampedX;
+              groupRef.current.position.y = clampedY;
               groupRef.current.position.z = clampedZ;
 
-              onUpdatePosition([clampedX, floorY, clampedZ]);
+              const newPos: [number, number, number] = [clampedX, clampedY, clampedZ];
+              onUpdatePosition(newPos);
+
+              if (mode === 'rotate') {
+                const rot = groupRef.current.rotation.toArray() as [number, number, number];
+                onUpdateRotation(rot);
+              }
             }
           }}
         />
@@ -336,7 +346,8 @@ export function Furniture({ url, position, mode, isSelected, onSelect, onUpdateP
 
       <group
         ref={setGroupRef}
-        position={[position[0], floorY, position[2]]}
+        position={[position[0], position[1], position[2]]}
+        rotation={rotation ?? [0, 0, 0]}
         onClick={(e: React.MouseEvent) => {
           e.stopPropagation();
           onSelect();
